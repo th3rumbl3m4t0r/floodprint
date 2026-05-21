@@ -1,0 +1,2953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>floodprint.web</title>
+<style>
+  :root {
+    --bg:        #0d0c0a;
+    --bg-soft:   #14120f;
+    --bg-card:   #181613;
+    --line:      #2a2620;
+    --line-soft: #1d1a16;
+    --fg:        #e8e1d4;
+    --fg-soft:   #b8b0a0;
+    --fg-dim:    #6b6457;
+    --fg-faint:  #3a352e;
+    --amber:     #d4a85a;
+    --amber-dim: #8a6f3c;
+    --red:       #c75c5c;
+    --green:     #7a9560;
+    --blue:      #6b8caf;
+    --violet:    #a075b0;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 14px;
+    line-height: 1.55;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.012) 1px, transparent 0);
+    background-size: 3px 3px;
+  }
+
+  ::selection { background: var(--amber); color: var(--bg); }
+
+  a { color: var(--amber); text-decoration: none; border-bottom: 1px dotted var(--amber-dim); }
+  a:hover { color: var(--fg); border-bottom-color: var(--fg); }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 48px 32px 96px; }
+
+  /* --- header --- */
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 32px;
+  }
+  .brand { display: flex; flex-direction: column; gap: 6px; }
+  .brand .name { font-size: 22px; font-weight: 500; letter-spacing: -0.02em; }
+  .brand .name .dot { color: var(--amber); }
+  .brand .tag { font-size: 12px; color: var(--fg-dim); letter-spacing: 0.04em; }
+  .status {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--fg-dim);
+    text-transform: uppercase; letter-spacing: 0.12em;
+  }
+  .status .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green);
+    transition: background 0.3s;
+  }
+  .status.is-flash   .dot { background: var(--amber); }
+  .status.is-error   .dot { background: var(--red); }
+  .status.is-loading .dot { background: var(--amber); animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+  /* --- intro --- */
+  .intro {
+    font-size: 13px; color: var(--fg-soft);
+    max-width: 76ch; margin-bottom: 32px;
+  }
+  .intro p { margin: 0 0 10px; }
+  .intro code {
+    background: var(--bg-soft); padding: 1px 6px;
+    border: 1px solid var(--line); color: var(--fg); font-size: 12px;
+  }
+  .intro .privacy {
+    display: inline-block;
+    border-left: 2px solid var(--amber);
+    padding: 2px 10px;
+    color: var(--fg); font-size: 12px; margin-top: 4px;
+  }
+
+  /* --- dropzone --- */
+  .dropzone {
+    border: 1.5px dashed var(--line);
+    background: var(--bg-soft);
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    margin-bottom: 24px;
+  }
+  .dropzone:hover, .dropzone.is-over {
+    border-color: var(--amber-dim);
+    background: var(--bg-card);
+  }
+  .dropzone .dz-main { font-size: 14px; color: var(--fg); margin-bottom: 6px; }
+  .dropzone .dz-sub { font-size: 11px; color: var(--fg-dim); letter-spacing: 0.04em; }
+  .dropzone.has-file {
+    border-style: solid;
+    border-color: var(--amber-dim);
+    text-align: left;
+    padding: 16px 20px;
+  }
+  .dropzone.has-file .dz-main {
+    font-size: 13px;
+    margin-bottom: 4px;
+    display: flex; justify-content: space-between; gap: 12px; align-items: baseline;
+  }
+  .dropzone.has-file .dz-main .fname {
+    color: var(--amber);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .dropzone.has-file .dz-main .freplace {
+    font-size: 10px; color: var(--fg-dim);
+    text-transform: uppercase; letter-spacing: 0.12em;
+  }
+
+  /* --- slider strip --- */
+  .config {
+    padding: 18px 20px;
+    border: 1px solid var(--line);
+    background: var(--bg-soft);
+    margin-bottom: 24px;
+  }
+  .slider-row {
+    display: flex; align-items: center; gap: 16px;
+  }
+  .slider-row .label {
+    font-size: 10px; color: var(--fg-dim);
+    text-transform: uppercase; letter-spacing: 0.14em;
+    min-width: 100px;
+  }
+  input[type="range"].sens {
+    -webkit-appearance: none; appearance: none;
+    flex: 1;
+    height: 4px;
+    background: var(--line);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"].sens::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 16px; height: 16px;
+    background: var(--amber);
+    cursor: pointer; border: none;
+  }
+  input[type="range"].sens::-moz-range-thumb {
+    width: 16px; height: 16px;
+    background: var(--amber);
+    cursor: pointer; border: none;
+  }
+  .stops {
+    display: flex; justify-content: space-between;
+    margin: 10px 0 0; padding: 0 6px;
+    font-size: 10px; color: var(--fg-faint);
+    letter-spacing: 0.06em;
+  }
+  .stops .stop { cursor: pointer; transition: color 0.15s; }
+  .stops .stop:hover { color: var(--fg); }
+  .stops .stop.active { color: var(--amber); }
+
+  .stat-bar {
+    display: flex; flex-wrap: wrap; gap: 18px 26px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+    font-size: 11px;
+  }
+  .stat-bar .stat { display: flex; flex-direction: column; gap: 2px; }
+  .stat-bar .stat .k {
+    color: var(--fg-dim);
+    text-transform: uppercase; letter-spacing: 0.1em;
+    font-size: 10px;
+  }
+  .stat-bar .stat .v { color: var(--fg); font-size: 13px; }
+  .stat-bar .stat.accent .v { color: var(--amber); }
+
+  /* --- output cards --- */
+  .output-section { margin-top: 8px; }
+  .variants { display: flex; flex-direction: column; gap: 10px; }
+
+  .variant {
+    border: 1px solid var(--line);
+    background: var(--bg-soft);
+  }
+  .variant-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 8px 14px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .variant-head .label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--fg-dim);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .variant-head .label .tag {
+    display: inline-block;
+    padding: 2px 7px;
+    border: 1px solid currentColor;
+    font-size: 9px; letter-spacing: 0.1em;
+  }
+  .variant.v0 .label .tag { color: var(--green); }
+  .variant.v1 .label .tag { color: var(--blue); }
+  .variant.vr .label .tag { color: var(--fg); }
+  .variant-head .meta {
+    font-size: 10px; color: var(--fg-faint);
+    text-align: right; max-width: 55%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .variant-body {
+    padding: 12px 14px;
+    font-size: 12.5px; color: var(--fg);
+    white-space: pre-wrap;
+    word-break: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.55; min-height: 38px;
+    position: relative;
+  }
+  .variant-body.empty { color: var(--fg-faint); font-style: italic; }
+  .variant-body .ctrl {
+    position: absolute; top: 8px; right: 8px;
+    display: flex; gap: 6px; opacity: 0.6;
+    transition: opacity 0.15s;
+  }
+  .variant:hover .variant-body .ctrl { opacity: 1; }
+  .copy-btn {
+    background: var(--bg-soft); color: var(--fg-dim);
+    border: 1px solid var(--line);
+    padding: 3px 9px; font-family: inherit; font-size: 10px;
+    cursor: pointer; text-transform: lowercase; letter-spacing: 0.05em;
+    transition: all 0.12s;
+  }
+  .copy-btn:hover { color: var(--amber); border-color: var(--amber-dim); }
+  .copy-btn.flashed { color: var(--green); border-color: var(--green); }
+
+  /* regex card highlight */
+  .variant.vr { border-color: var(--amber-dim); }
+  .variant.vr .variant-head { background: rgba(212,168,90,0.04); }
+
+  /* hex dump highlight */
+  .hex-dump {
+    font-size: 11.5px;
+    line-height: 1.7;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .hex-dump .row { display: block; }
+  .hex-dump .off { color: var(--fg-faint); }
+  .hex-dump .byte-lit  { color: var(--amber); }
+  .hex-dump .byte-lit-bg {
+    color: var(--amber);
+    background: rgba(212,168,90,0.13);
+  }
+  .hex-dump .byte-wild { color: var(--fg-soft); }
+  .hex-dump .byte-out  { color: var(--fg-faint); }
+  .hex-dump .sep       { color: var(--fg-faint); }
+
+  .parsed-summary {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 4px 14px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed var(--line);
+    font-size: 12px;
+  }
+  .parsed-summary .pk { color: var(--fg-dim); text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px; align-self: center; }
+  .parsed-summary .pv { color: var(--fg); }
+
+  /* --- example split: hex dump left, parsed tree right --- */
+  .example-split {
+    display: flex;
+    gap: 22px;
+    align-items: flex-start;
+  }
+  .example-split .ex-left { flex: 1 1 auto; min-width: 0; overflow-x: auto; }
+  .example-split .ex-right {
+    flex: 0 0 320px;
+    max-width: 320px;
+    border-left: 1px solid var(--line-soft);
+    padding-left: 16px;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .parsed-tree .layer {
+    margin-bottom: 12px;
+  }
+  .parsed-tree .layer:last-child { margin-bottom: 0; }
+  .parsed-tree .layer-name {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--amber-dim);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    padding-bottom: 2px;
+    border-bottom: 1px dotted var(--line);
+  }
+  .parsed-tree .field {
+    display: grid;
+    grid-template-columns: 88px 1fr;
+    gap: 4px 10px;
+    align-items: baseline;
+    margin: 1px 0;
+  }
+  .parsed-tree .field .fn {
+    color: var(--fg-dim);
+    font-size: 10px;
+    text-transform: lowercase;
+    letter-spacing: 0.04em;
+  }
+  .parsed-tree .field .fv {
+    color: var(--fg);
+    overflow-wrap: anywhere;
+    word-break: break-all;
+  }
+  .parsed-tree .field .fv.match-full {
+    background: rgba(212, 168, 90, 0.18);
+    color: var(--amber);
+    padding: 0 4px;
+    margin: 0 -4px;
+  }
+  .parsed-tree .field .fv.match-part {
+    background: rgba(212, 168, 90, 0.06);
+    padding: 0 4px;
+    margin: 0 -4px;
+  }
+
+  @media (max-width: 880px) {
+    .example-split { flex-direction: column; }
+    .example-split .ex-right {
+      flex: 1 1 auto; max-width: 100%;
+      border-left: none;
+      border-top: 1px solid var(--line-soft);
+      padding-left: 0;
+      padding-top: 14px;
+    }
+  }
+
+  /* --- helper note --- */
+  .helper {
+    font-size: 11px; color: var(--fg-dim);
+    margin-top: 18px;
+    padding: 12px 14px;
+    border-left: 1px solid var(--line);
+    background: var(--bg-soft);
+    line-height: 1.7;
+  }
+  .helper p { margin: 0; }
+  .helper p + p { margin-top: 8px; }
+  .helper strong { font-weight: 500; }
+  .helper code {
+    background: var(--bg); padding: 1px 6px;
+    border: 1px solid var(--line); color: var(--fg); font-size: 11px;
+  }
+  .helper .swatch-lit {
+    display: inline-block;
+    padding: 0 4px;
+    background: rgba(212,168,90,0.15);
+    color: var(--amber);
+  }
+
+  /* --- mode toggle in config strip --- */
+  .mode-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-bottom: 14px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .mode-row .label {
+    font-size: 10px;
+    color: var(--fg-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    min-width: 100px;
+  }
+  .mode-toggle {
+    display: inline-flex;
+    border: 1px solid var(--line);
+    background: var(--bg);
+  }
+  .mode-toggle button {
+    background: transparent;
+    color: var(--fg-dim);
+    border: none;
+    padding: 7px 16px;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+    border-right: 1px solid var(--line);
+  }
+  .mode-toggle button:last-child { border-right: none; }
+  .mode-toggle button:hover:not(.active) { color: var(--fg); }
+  .mode-toggle button.active {
+    background: var(--amber);
+    color: var(--bg);
+  }
+  .mode-row .mode-desc {
+    font-size: 11px;
+    color: var(--fg-dim);
+    flex: 1;
+  }
+
+  /* --- multi-vector layout --- */
+  .vector-block {
+    border: 1px solid var(--line);
+    background: var(--bg-soft);
+    margin-bottom: 18px;
+  }
+  .vector-block-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg-card);
+  }
+  .vector-block-head .vbh-name {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .vector-block-head .vbh-name .vbh-tag {
+    display: inline-block;
+    padding: 3px 9px;
+    background: var(--amber);
+    color: var(--bg);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    font-weight: 500;
+  }
+  .vector-block-head .vbh-stats {
+    font-size: 11px;
+    color: var(--fg-dim);
+    letter-spacing: 0.04em;
+  }
+  .vector-block-body {
+    padding: 14px 16px;
+  }
+  .vector-block .slider-row { padding-bottom: 0; }
+  .vector-block .stops {
+    margin: 8px 0 14px;
+    padding: 0 4px;
+  }
+  .vector-block .variants {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .vector-block .stat-bar {
+    margin-top: 4px;
+    margin-bottom: 14px;
+    padding-top: 12px;
+    padding-bottom: 0;
+    border-top: 1px solid var(--line-soft);
+    gap: 16px 22px;
+  }
+  .vector-block .stat-bar .stat .v { font-size: 12px; }
+  .vector-block .stat-bar .stat .k { font-size: 9px; }
+  .vector-block .stat-bar .stat .v.warn { color: var(--red); }
+
+  /* --- combined-regex card with per-vector toggles --- */
+  .combined {
+    margin-top: 22px;
+    border: 1.5px solid var(--amber-dim);
+    background: var(--bg-soft);
+  }
+  .combined-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(212, 168, 90, 0.06);
+  }
+  .combined-head .label {
+    font-size: 10px;
+    color: var(--amber);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    flex: 1;
+  }
+  .combined-head .label .tag {
+    display: inline-block;
+    padding: 2px 7px;
+    border: 1px solid var(--amber);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    margin-right: 10px;
+  }
+  .combined-head .meta {
+    font-size: 10px;
+    color: var(--fg-faint);
+  }
+  .vector-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .vector-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--fg-dim);
+    cursor: pointer;
+    font-size: 11px;
+    font-family: inherit;
+    transition: all 0.12s;
+    user-select: none;
+  }
+  .vector-toggle:hover {
+    border-color: var(--amber-dim);
+    color: var(--fg);
+  }
+  .vector-toggle.on {
+    background: rgba(212, 168, 90, 0.10);
+    border-color: var(--amber-dim);
+    color: var(--amber);
+  }
+  .vector-toggle .checkbox {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 1px solid currentColor;
+    background: transparent;
+    flex-shrink: 0;
+  }
+  .vector-toggle.on .checkbox {
+    background: var(--amber);
+    border-color: var(--amber);
+  }
+  .combined-body {
+    padding: 12px 16px;
+    font-size: 12.5px;
+    color: var(--fg);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    line-height: 1.55;
+    position: relative;
+  }
+  .combined-body .ctrl {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 6px;
+  }
+  .combined-body.empty { color: var(--fg-faint); font-style: italic; }
+
+  /* --- footer --- */
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    font-size: 11px; color: var(--fg-dim); line-height: 1.8;
+  }
+  footer .row { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 28px 18px 64px; }
+    header { flex-direction: column; gap: 12px; }
+    .variant-head { flex-wrap: wrap; }
+    .variant-head .meta { max-width: 100%; }
+    .slider-row { flex-direction: column; align-items: stretch; gap: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="name">floodprint<span class="dot">.</span>web</div>
+      <div class="tag">pcap → ddos signature regex · for arbor / suricata / tms payload filters</div>
+    </div>
+    <div class="status" id="status">
+      <span class="dot"></span>
+      <span class="text" id="status-text">awaiting pcap</span>
+    </div>
+  </header>
+
+  <div class="intro">
+    <p>Drop a pcap of DDoS traffic; get back a PCRE-style escape-string regex matching the attack pattern. Packets are not parsed by protocol — each frame is treated as an opaque byte sequence from offset zero. The tool runs <span style="color:var(--fg)">position-by-position byte frequency analysis</span> for fixed-offset structure, plus a <span style="color:var(--fg)">global floating-substring pass</span> that finds byte sequences recurring across frames at <em>any</em> offset — essential for catching things like DNS water torture where the target domain shifts position per packet because each query has a different random subdomain prefix.</p>
+    <p>Five regexes are generated, one each for 50% / 60% / 70% / 80% / 90% packet-coverage targets — slide between them. Lower coverage = more specific regex (lots of literals, matches the cleanest cohort); higher coverage = looser regex (more wildcards, catches stragglers and variants). The example packet below each regex shows exactly which bytes are <span class="amber" style="color:var(--amber)">literal-matched</span> and which fall into a wildcard.</p>
+    <p><span class="privacy">runs entirely in your browser — your pcap is never uploaded anywhere</span></p>
+  </div>
+
+  <div class="dropzone" id="dropzone">
+    <div class="dz-main" id="dz-main">drop a .pcap or .pcapng file here</div>
+    <div class="dz-sub" id="dz-sub">or click to choose · ethernet / raw ip / sll · ipv4+ipv6 · any l4</div>
+    <input type="file" id="file-input" accept=".pcap,.pcapng,.cap" class="hidden">
+  </div>
+
+  <div class="config hidden" id="controls">
+    <div class="mode-row">
+      <span class="label">mode</span>
+      <div class="mode-toggle" id="mode-toggle">
+        <button class="active" data-mode="single">single-vector</button>
+        <button data-mode="multi">multi-vector</button>
+      </div>
+      <span class="mode-desc" id="mode-desc">treat all frames as one cohort</span>
+    </div>
+    <div class="slider-row" id="single-slider-row">
+      <span class="label">coverage target</span>
+      <input type="range" class="sens" id="sens-slider" min="0" max="4" step="1" value="2">
+    </div>
+    <div class="stops" id="stops">
+      <span class="stop" data-i="0">50%</span>
+      <span class="stop" data-i="1">60%</span>
+      <span class="stop active" data-i="2">70%</span>
+      <span class="stop" data-i="3">80%</span>
+      <span class="stop" data-i="4">90%</span>
+    </div>
+    <div class="stat-bar" id="single-stat-bar">
+      <div class="stat">
+        <span class="k">target</span>
+        <span class="v" id="s-target">—</span>
+      </div>
+      <div class="stat accent">
+        <span class="k">actual match</span>
+        <span class="v" id="s-actual">—</span>
+      </div>
+      <div class="stat">
+        <span class="k">literals</span>
+        <span class="v" id="s-literals">—</span>
+      </div>
+      <div class="stat">
+        <span class="k">regex length</span>
+        <span class="v" id="s-rlen">—</span>
+      </div>
+      <div class="stat">
+        <span class="k">floating subs</span>
+        <span class="v" id="s-float">—</span>
+      </div>
+      <div class="stat">
+        <span class="k">alternations</span>
+        <span class="v" id="s-alt">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Multi-vector output: populated dynamically when mode = multi -->
+  <div class="output-section hidden" id="multi-output"></div>
+
+  <div class="output-section hidden" id="output">
+    <div class="variants">
+      <div class="variant v0">
+        <div class="variant-head">
+          <span class="label"><span class="tag">summary</span> file · frames · cohort</span>
+          <span class="meta" id="m-sum">—</span>
+        </div>
+        <div class="variant-body empty" id="b-sum">waiting for pcap<div class="ctrl"><button class="copy-btn" data-copy="b-sum">copy</button></div></div>
+      </div>
+
+      <div class="variant vr">
+        <div class="variant-head">
+          <span class="label"><span class="tag">regex</span> pcre escape string</span>
+          <span class="meta" id="m-re">—</span>
+        </div>
+        <div class="variant-body empty" id="b-re">waiting for pcap<div class="ctrl"><button class="copy-btn" data-copy="b-re">copy</button></div></div>
+      </div>
+
+      <div class="variant v1">
+        <div class="variant-head">
+          <span class="label"><span class="tag">example</span> matching packet · highlighted</span>
+          <span class="meta" id="m-ex">—</span>
+        </div>
+        <div class="variant-body empty" id="b-ex">waiting for pcap<div class="ctrl"><button class="copy-btn" data-copy="b-ex">copy</button></div></div>
+      </div>
+
+      <div class="variant v0">
+        <div class="variant-head">
+          <span class="label"><span class="tag">substrings</span> recurring byte sequences found · in or out of regex</span>
+          <span class="meta" id="m-subs">—</span>
+        </div>
+        <div class="variant-body empty" id="b-subs">waiting for pcap<div class="ctrl"><button class="copy-btn" data-copy="b-subs">copy</button></div></div>
+      </div>
+    </div>
+
+    <div class="helper">
+      <p><strong style="color:var(--fg)">how it works.</strong> Two complementary passes. <em>Positional</em>: for each byte offset, if ≥ <code>T</code> fraction of frames carry the same byte, emit it as a literal; otherwise wildcard. Catches fixed-offset structure (ethernet, IP, port-aware fields). <em>Floating</em>: globally mine recurring byte n-grams that appear in ≥ <code>T</code> of frames at <strong>any</strong> offset, greedily extend, dedupe, and stitch them into the regex with <code>.*</code> between them. Catches attacks like DNS water torture where the target domain shifts position per packet because the random prefix is variable-length.</p>
+      <p><strong style="color:var(--fg)">switched-position alternation.</strong> Within wildcard runs of 4+ bytes, recurring n-grams of length ≥4 that appear at varying offsets in different packet subsets are emitted as <code>(seqA|seqB|…)</code>. Capped at 5 alternations per region; if more candidates exist, the longest are kept.</p>
+      <p><strong style="color:var(--fg)">example packet.</strong> Pulled from a random matching frame. Left side: hex dump with <span class="swatch-lit">literal-matched bytes</span> highlighted against muted wildcard positions. Right side: parsed protocol tree (Ethernet / IP / L4 / DNS / HTTP / TLS / NTP) with each field's value highlighted based on whether the regex pins its bytes. Highlighting only reflects the positional pass — floating-substring matches don't land at fixed offsets so don't paint fixed bytes.</p>
+      <p><strong style="color:var(--fg)">slider intuition.</strong> 50% target → tightest regex, but only the cleanest cohort matches. 90% target → loosest regex, matches most of the pcap including noise. The "actual match" stat above the cards may differ from the target slightly because positional and floating constraints intersect imperfectly; if it falls well below, the pcap is heterogeneous and you may need to pre-filter.</p>
+      <p><strong style="color:var(--fg)">multi-vector mode.</strong> When a single regex can't capture a mixed attack (e.g. DNS amplification + SYN flood + HTTP slowloris in one pcap), switch the mode toggle. Frames are grouped by <code>(L4 proto, dst port)</code>, the top 5 groups by frame count are kept, and each gets its own analysis pipeline with an independent coverage slider and example packet. The combined-regex card at the bottom shows two outputs: separate per-vector regexes you can plug into a filter for each protocol/port, plus a single alternation regex <code>(rx1)|(rx2)|…</code> for whole-payload engines like Suricata <code>content+pcre</code>. Enable/disable individual vectors with the pill toggles to focus the combined output.</p>
+    </div>
+  </div>
+
+  <footer>
+    <div class="row">
+      <div>pure client-side — single static html, drop into nginx and it just works.</div>
+      <div>sibling tools: <a href="../base64ratshot/">base64ratshot.web</a> · <a href="../location/">location.web</a></div>
+    </div>
+  </footer>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const COVERAGES = [0.50, 0.60, 0.70, 0.80, 0.90];
+
+  // ---------- dom refs ----------
+  const $ = id => document.getElementById(id);
+  const statusEl   = $("status");
+  const statusText = $("status-text");
+  const dropzone   = $("dropzone");
+  const fileInput  = $("file-input");
+  const dzMain     = $("dz-main");
+  const dzSub      = $("dz-sub");
+  const controls   = $("controls");
+  const output     = $("output");
+  const sensSlider = $("sens-slider");
+  const stopsEl    = $("stops");
+
+  // ---------- state ----------
+  const state = {
+    frames:   [],       // Uint8Array[]
+    binFrames:[],       // binary-string copies of frames (for substring search)
+    frameLinktypes: [], // linktype per frame
+    results:  [],       // per-coverage results (single-vector mode)
+    fileName: "",
+    fileBytes:0,
+    format:   "",
+    totalFrameCount: 0, // including unparsed
+    currentIdx: 2,      // index into COVERAGES (single-vector)
+
+    // Multi-vector mode
+    mode: "single",          // "single" | "multi"
+    vectors: [],             // [{key, label, frames, binFrames, linktypes, frameIdx}]
+    vectorResults: [],       // vectorResults[v][t] = result or null
+    vectorCurrentIdx: [],    // current threshold idx per vector
+    vectorEnabled: [],       // boolean per vector
+  };
+
+  // ---------- status ----------
+  function setStatus(text, mode) {
+    statusEl.classList.remove("is-flash", "is-error", "is-loading");
+    if      (mode === "flash")   statusEl.classList.add("is-flash");
+    else if (mode === "error")   statusEl.classList.add("is-error");
+    else if (mode === "loading") statusEl.classList.add("is-loading");
+    statusText.textContent = text;
+  }
+
+  // ---------- helpers ----------
+  function fmtBytes(n) {
+    if (n < 1024) return n + " b";
+    if (n < 1024*1024) return (n/1024).toFixed(1) + " kb";
+    return (n/(1024*1024)).toFixed(1) + " mb";
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    })[c]);
+  }
+  function setBody(id, text, isEmpty = false) {
+    const body = $(id);
+    body.innerHTML = escapeHtml(text) +
+      `<div class="ctrl"><button class="copy-btn" data-copy="${id}">copy</button></div>`;
+    body.classList.toggle("empty", isEmpty);
+  }
+  function setBodyHtml(id, html, isEmpty = false) {
+    const body = $(id);
+    body.innerHTML = html +
+      `<div class="ctrl"><button class="copy-btn" data-copy="${id}">copy</button></div>`;
+    body.classList.toggle("empty", isEmpty);
+  }
+  const setMeta = (id, text) => { $(id).textContent = text; };
+
+  // Convert a Uint8Array to a binary "byte-string" (one char per byte).
+  function bytesToBinStr(bytes) {
+    let s = "";
+    const CHUNK = 8192;
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      s += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+    }
+    return s;
+  }
+
+  // ---------- pcap parser (classic) ----------
+  function parsePcapClassic(buf) {
+    const view = new DataView(buf);
+    if (buf.byteLength < 24) return null;
+    const magic = view.getUint32(0, false);
+    let le;
+    if      (magic === 0xa1b2c3d4) le = false;
+    else if (magic === 0xd4c3b2a1) le = true;
+    else if (magic === 0xa1b23c4d) le = false;  // nanosecond precision
+    else if (magic === 0x4d3cb2a1) le = true;
+    else return null;
+    const linktype = view.getUint32(20, le);
+    let off = 24;
+    const out = [];
+    while (off + 16 <= buf.byteLength) {
+      const incl  = view.getUint32(off + 8, le);
+      off += 16;
+      if (incl > 262144 || off + incl > buf.byteLength) break;
+      out.push({ data: new Uint8Array(buf, off, incl), linktype });
+      off += incl;
+    }
+    return { format: "pcap", linktype, records: out };
+  }
+
+  // ---------- pcapng parser (SHB, IDB, EPB, SPB) ----------
+  function parsePcapng(buf) {
+    if (buf.byteLength < 12) return null;
+    const view = new DataView(buf);
+    if (view.getUint32(0, false) !== 0x0a0d0d0a) return null;
+
+    let off = 0;
+    const interfaces = [];
+    const out = [];
+    let le = true;
+
+    while (off + 8 <= buf.byteLength) {
+      const blockType = view.getUint32(off, false);
+      let blockLen = view.getUint32(off + 4, le);
+      if (blockLen < 12 || blockLen > buf.byteLength - off) {
+        const alt = view.getUint32(off + 4, !le);
+        if (alt >= 12 && alt <= buf.byteLength - off) blockLen = alt;
+        else break;
+      }
+
+      if (blockType === 0x0a0d0d0a) {
+        const bom = view.getUint32(off + 8, false);
+        if      (bom === 0x1a2b3c4d) le = false;
+        else if (bom === 0x4d3c2b1a) le = true;
+        else break;
+        blockLen = view.getUint32(off + 4, le);
+      } else if (blockType === 0x00000001) {
+        const lt = view.getUint16(off + 8, le);
+        interfaces.push(lt);
+      } else if (blockType === 0x00000006) {
+        const ifaceId = view.getUint32(off + 8, le);
+        const capLen  = view.getUint32(off + 20, le);
+        if (capLen > 0 && capLen < 262144 && off + 28 + capLen <= buf.byteLength) {
+          const lt = interfaces[ifaceId] !== undefined ? interfaces[ifaceId] : 1;
+          out.push({ data: new Uint8Array(buf, off + 28, capLen), linktype: lt });
+        }
+      } else if (blockType === 0x00000003) {
+        const origLen = view.getUint32(off + 8, le);
+        const dataLen = Math.min(origLen, blockLen - 16);
+        if (dataLen > 0 && dataLen < 262144) {
+          const lt = interfaces.length ? interfaces[0] : 1;
+          out.push({ data: new Uint8Array(buf, off + 12, dataLen), linktype: lt });
+        }
+      }
+
+      off += blockLen;
+      if (off % 4 !== 0) off += 4 - (off % 4);
+    }
+    return { format: "pcapng", linktype: null, records: out };
+  }
+
+  // ---------- light parsing (display only — never used in analysis) ----------
+  // ============================================================
+  // FLOW KEY EXTRACTION (for multi-vector mode)
+  // Returns { proto:"UDP"|"TCP"|"ICMP"|"ICMPv6"|"OTHER", dport:int }
+  // or null if frame can't be classified. Lightweight — only walks far
+  // enough to read the L4 ports.
+  // ============================================================
+  function extractFlowKey(data, linktype) {
+    let off = 0, etype = 0;
+    if (linktype === 1) {
+      if (data.length < 14) return null;
+      etype = (data[12] << 8) | data[13];
+      off = 14;
+      let vlanGuard = 0;
+      while ((etype === 0x8100 || etype === 0x88a8) && data.length >= off + 4 && vlanGuard++ < 2) {
+        etype = (data[off+2] << 8) | data[off+3];
+        off += 4;
+      }
+    } else if (linktype === 101) {
+      const v = data.length > 0 ? data[0] >> 4 : 0;
+      if (v === 4) etype = 0x0800;
+      else if (v === 6) etype = 0x86dd;
+      else return null;
+      off = 0;
+    } else if (linktype === 113) {
+      if (data.length < 16) return null;
+      etype = (data[14] << 8) | data[15];
+      off = 16;
+    } else if (linktype === 276) {
+      if (data.length < 20) return null;
+      etype = (data[0] << 8) | data[1];
+      off = 20;
+    } else {
+      return null;
+    }
+
+    let proto, l4Off;
+    if (etype === 0x0800) {
+      if (data.length < off + 20) return null;
+      const ihl = (data[off] & 0x0f) * 4;
+      if (ihl < 20 || data.length < off + ihl) return null;
+      proto = data[off + 9];
+      l4Off = off + ihl;
+    } else if (etype === 0x86dd) {
+      if (data.length < off + 40) return null;
+      let nh = data[off + 6];
+      let cur = off + 40, guard = 0;
+      while ((nh === 0 || nh === 43 || nh === 60) && guard++ < 8 && data.length >= cur + 2) {
+        const nextNh = data[cur];
+        const hdrLen = (data[cur+1] + 1) * 8;
+        cur += hdrLen;
+        nh = nextNh;
+      }
+      proto = nh;
+      l4Off = cur;
+    } else {
+      return null;
+    }
+
+    if (proto === 17) {
+      if (data.length < l4Off + 4) return { proto:"UDP", dport: 0 };
+      return { proto:"UDP", dport: (data[l4Off+2] << 8) | data[l4Off+3] };
+    }
+    if (proto === 6) {
+      if (data.length < l4Off + 4) return { proto:"TCP", dport: 0 };
+      return { proto:"TCP", dport: (data[l4Off+2] << 8) | data[l4Off+3] };
+    }
+    if (proto === 1)  return { proto:"ICMP",   dport: -1 };
+    if (proto === 58) return { proto:"ICMPv6", dport: -1 };
+    return { proto:"OTHER:"+proto, dport: -1 };
+  }
+
+  // Helper: pretty-print a flow key
+  function flowKeyLabel(key) {
+    if (key.proto === "ICMP" || key.proto === "ICMPv6") return key.proto;
+    if (key.proto.startsWith("OTHER:")) return key.proto;
+    return `${key.proto}/${key.dport}`;
+  }
+
+  // Group frames by (proto, dport) → return top N as
+  //   [{ key:{proto,dport}, label, frames:[Uint8Array], binFrames:[string],
+  //      linktypes:[int], frameIdx:[int] }, ...]
+  // sorted by frame count descending.
+  function groupByFlow(allFrames, allLinktypes, allBinFrames, topN = 5) {
+    const buckets = new Map();
+    for (let i = 0; i < allFrames.length; i++) {
+      const key = extractFlowKey(allFrames[i], allLinktypes[i]);
+      if (!key) continue;
+      const k = flowKeyLabel(key);
+      if (!buckets.has(k)) {
+        buckets.set(k, { key, label: k, frames: [], binFrames: [], linktypes: [], frameIdx: [] });
+      }
+      const b = buckets.get(k);
+      b.frames.push(allFrames[i]);
+      b.binFrames.push(allBinFrames[i]);
+      b.linktypes.push(allLinktypes[i]);
+      b.frameIdx.push(i);
+    }
+    const arr = [...buckets.values()].sort((a, b) => b.frames.length - a.frames.length);
+    return arr.slice(0, topN);
+  }
+
+  // ============================================================
+  // DISPLAY-ONLY PARSER
+  // Returns: { layers: [{name, fields: [{name, value, start, end}, ...] }, ...] }
+  // Byte ranges are absolute offsets into the frame. NEVER used in analysis —
+  // only for rendering the parsed view alongside the hex dump.
+  // ============================================================
+  function parseFrameDetailed(data, linktype) {
+    const layers = [];
+    if (linktype === 1) {
+      const eth = parseEthernet(data, 0);
+      if (!eth) return { layers };
+      layers.push(eth.layer);
+      parseL3Cascade(data, eth.next, eth.etype, layers);
+    } else if (linktype === 101) {
+      const v = data[0] >> 4;
+      if      (v === 4) parseL3Cascade(data, 0, 0x0800, layers);
+      else if (v === 6) parseL3Cascade(data, 0, 0x86dd, layers);
+    } else if (linktype === 113) {
+      // Linux SLL — 16-byte header; ethertype at offset 14
+      if (data.length >= 16) {
+        const etype = (data[14] << 8) | data[15];
+        parseL3Cascade(data, 16, etype, layers);
+      }
+    } else if (linktype === 276) {
+      // Linux SLL2 — 20-byte header; ethertype at offset 0
+      if (data.length >= 20) {
+        const etype = (data[0] << 8) | data[1];
+        parseL3Cascade(data, 20, etype, layers);
+      }
+    }
+    return { layers };
+  }
+
+  function parseL3Cascade(data, off, etype, layers) {
+    if (etype === 0x0800) {
+      const ip = parseIPv4Detailed(data, off);
+      if (ip) {
+        layers.push(ip.layer);
+        parseL4Cascade(data, ip.next, ip.proto, ip.payloadEnd, layers);
+      }
+    } else if (etype === 0x86dd) {
+      const ip = parseIPv6Detailed(data, off);
+      if (ip) {
+        layers.push(ip.layer);
+        parseL4Cascade(data, ip.next, ip.proto, ip.payloadEnd, layers);
+      }
+    }
+  }
+
+  function parseL4Cascade(data, off, proto, end, layers) {
+    if (proto === 17) {
+      const udp = parseUDPDetailed(data, off);
+      if (udp) {
+        layers.push(udp.layer);
+        parseL7Cascade(data, udp.next, end, "udp", udp.sport, udp.dport, layers);
+      }
+    } else if (proto === 6) {
+      const tcp = parseTCPDetailed(data, off);
+      if (tcp) {
+        layers.push(tcp.layer);
+        parseL7Cascade(data, tcp.next, end, "tcp", tcp.sport, tcp.dport, layers);
+      }
+    } else if (proto === 1) {
+      const ic = parseICMPDetailed(data, off);
+      if (ic) layers.push(ic);
+    } else if (proto === 58) {
+      const ic = parseICMPDetailed(data, off, true);
+      if (ic) layers.push(ic);
+    }
+  }
+
+  function parseL7Cascade(data, off, end, l4, sport, dport, layers) {
+    if (off >= end) return;
+    // DNS — UDP/TCP port 53
+    if (dport === 53 || sport === 53) {
+      const dns = parseDNSDetailed(data, off, end);
+      if (dns) { layers.push(dns); return; }
+    }
+    // TLS — TCP (record type 0x16 = Handshake, version major 0x03)
+    if (l4 === "tcp" && off + 5 <= end && data[off] === 0x16 && data[off+1] === 0x03) {
+      const tls = parseTLSDetailed(data, off, end);
+      if (tls) { layers.push(tls); return; }
+    }
+    // HTTP — sniff at content rather than port-match (covers 80/8080/8000/etc.)
+    if (l4 === "tcp" && end - off >= 8) {
+      const http = parseHTTPDetailed(data, off, end);
+      if (http) { layers.push(http); return; }
+    }
+    // NTP — UDP/123, fixed 48-byte structure
+    if (l4 === "udp" && (dport === 123 || sport === 123) && end - off >= 48) {
+      const ntp = parseNTPDetailed(data, off);
+      if (ntp) { layers.push(ntp); return; }
+    }
+  }
+
+  // ---- ethernet ----
+  function macToStr(data, off) {
+    return [...data.subarray(off, off + 6)].map(b => b.toString(16).padStart(2, "0")).join(":");
+  }
+  function etypeName(et) {
+    return ({0x0800:"ipv4",0x86dd:"ipv6",0x0806:"arp",0x8100:"802.1q",0x88a8:"802.1ad",
+             0x8847:"mpls",0x8035:"rarp",0x88cc:"lldp"})[et]
+        || `0x${et.toString(16).padStart(4,"0")}`;
+  }
+  function parseEthernet(data, off) {
+    if (data.length < off + 14) return null;
+    const fields = [];
+    fields.push({ name:"dst", value: macToStr(data, off),         start: off,     end: off+6 });
+    fields.push({ name:"src", value: macToStr(data, off+6),       start: off+6,   end: off+12 });
+    let etype = (data[off+12] << 8) | data[off+13];
+    let curOff = off + 14;
+    let vlanLayers = 0;
+    while ((etype === 0x8100 || etype === 0x88a8) && data.length >= curOff + 4 && vlanLayers < 2) {
+      const vid = ((data[curOff] & 0x0f) << 8) | data[curOff + 1];
+      fields.push({ name: vlanLayers ? "qinq" : "vlan", value: `vid=${vid}`, start: curOff, end: curOff+4 });
+      etype  = (data[curOff+2] << 8) | data[curOff+3];
+      curOff += 4;
+      vlanLayers++;
+    }
+    fields.push({ name:"ethertype", value: etypeName(etype), start: curOff-2, end: curOff });
+    return { layer: { name:"ethernet", fields }, next: curOff, etype };
+  }
+
+  // ---- ipv4 ----
+  function parseIPv4Detailed(data, off) {
+    if (data.length < off + 20) return null;
+    const ihl = (data[off] & 0x0f) * 4;
+    if (ihl < 20 || data.length < off + ihl) return null;
+    const fields = [];
+    fields.push({ name:"version",  value:"4",                              start:off,   end:off+1 });
+    fields.push({ name:"ihl",      value:`${ihl} bytes`,                   start:off,   end:off+1 });
+    fields.push({ name:"dscp/ecn", value:`0x${data[off+1].toString(16).padStart(2,"0")}`, start:off+1, end:off+2 });
+    const totalLen = (data[off+2]<<8)|data[off+3];
+    fields.push({ name:"total len",value:String(totalLen),                 start:off+2, end:off+4 });
+    fields.push({ name:"id",       value:`0x${((data[off+4]<<8)|data[off+5]).toString(16).padStart(4,"0")}`, start:off+4, end:off+6 });
+    const flagsFrag = (data[off+6]<<8)|data[off+7];
+    const flagBits = flagsFrag >> 13;
+    const flagStr = [
+      (flagBits & 0x4) ? "RES" : null,
+      (flagBits & 0x2) ? "DF"  : null,
+      (flagBits & 0x1) ? "MF"  : null,
+    ].filter(Boolean).join("|") || "none";
+    fields.push({ name:"flags",    value: flagStr,                         start:off+6, end:off+7 });
+    fields.push({ name:"frag off", value: String(flagsFrag & 0x1fff),      start:off+6, end:off+8 });
+    fields.push({ name:"ttl",      value: String(data[off+8]),             start:off+8, end:off+9 });
+    const proto = data[off+9];
+    const protoName = ({1:"icmp",6:"tcp",17:"udp",47:"gre",50:"esp",58:"icmpv6",132:"sctp"})[proto] || `proto-${proto}`;
+    fields.push({ name:"protocol", value: protoName,                       start:off+9, end:off+10 });
+    fields.push({ name:"checksum", value:`0x${((data[off+10]<<8)|data[off+11]).toString(16).padStart(4,"0")}`, start:off+10, end:off+12 });
+    fields.push({ name:"src",      value:`${data[off+12]}.${data[off+13]}.${data[off+14]}.${data[off+15]}`, start:off+12, end:off+16 });
+    fields.push({ name:"dst",      value:`${data[off+16]}.${data[off+17]}.${data[off+18]}.${data[off+19]}`, start:off+16, end:off+20 });
+    if (ihl > 20) {
+      fields.push({ name:"options", value:`${ihl - 20} bytes`,             start:off+20, end:off+ihl });
+    }
+    const payloadEnd = totalLen ? Math.min(off + totalLen, data.length) : data.length;
+    return { layer:{ name:"ipv4", fields }, next: off + ihl, proto, payloadEnd };
+  }
+
+  // ---- ipv6 ----
+  function ipv6Str(data, off) {
+    const parts = [];
+    for (let i = 0; i < 16; i += 2) parts.push(((data[off+i] << 8) | data[off+i+1]).toString(16));
+    return parts.join(":").replace(/(?:^|:)(?:0:){2,}/, "::").replace(/^0::/, "::");
+  }
+  function parseIPv6Detailed(data, off) {
+    if (data.length < off + 40) return null;
+    const fields = [];
+    fields.push({ name:"version", value:"6", start:off, end:off+1 });
+    const tc = ((data[off] & 0x0f) << 4) | (data[off+1] >> 4);
+    fields.push({ name:"tc",          value:`0x${tc.toString(16).padStart(2,"0")}`, start:off, end:off+2 });
+    fields.push({ name:"flow label",  value:`0x${(((data[off+1]&0x0f)<<16)|(data[off+2]<<8)|data[off+3]).toString(16)}`, start:off+1, end:off+4 });
+    const payloadLen = (data[off+4]<<8)|data[off+5];
+    fields.push({ name:"payload len", value: String(payloadLen),           start:off+4, end:off+6 });
+    let nh = data[off+6];
+    const protoMap = {0:"hop-by-hop",1:"icmp",6:"tcp",17:"udp",43:"routing",44:"fragment",58:"icmpv6",60:"dest-opts"};
+    fields.push({ name:"next header", value: protoMap[nh] || `proto-${nh}`,start:off+6, end:off+7 });
+    fields.push({ name:"hop limit",   value: String(data[off+7]),          start:off+7, end:off+8 });
+    fields.push({ name:"src",         value: ipv6Str(data, off+8),         start:off+8, end:off+24 });
+    fields.push({ name:"dst",         value: ipv6Str(data, off+24),        start:off+24, end:off+40 });
+    let cursor = off + 40, guard = 0;
+    while ((nh === 0 || nh === 43 || nh === 60) && guard++ < 8 && data.length >= cursor + 2) {
+      const nextNh = data[cursor];
+      const hdrLen = (data[cursor+1] + 1) * 8;
+      fields.push({ name:`ext hdr`, value:`type=${protoMap[nh]||nh} len=${hdrLen}`, start:cursor, end:cursor+hdrLen });
+      cursor += hdrLen;
+      nh = nextNh;
+    }
+    const payloadEnd = Math.min(off + 40 + payloadLen, data.length);
+    return { layer:{ name:"ipv6", fields }, next: cursor, proto: nh, payloadEnd };
+  }
+
+  // ---- udp ----
+  function parseUDPDetailed(data, off) {
+    if (data.length < off + 8) return null;
+    const sport = (data[off]<<8)|data[off+1];
+    const dport = (data[off+2]<<8)|data[off+3];
+    const ulen  = (data[off+4]<<8)|data[off+5];
+    const fields = [
+      { name:"sport",    value: String(sport), start: off,   end: off+2 },
+      { name:"dport",    value: String(dport), start: off+2, end: off+4 },
+      { name:"length",   value: String(ulen),  start: off+4, end: off+6 },
+      { name:"checksum", value:`0x${((data[off+6]<<8)|data[off+7]).toString(16).padStart(4,"0")}`, start: off+6, end: off+8 },
+    ];
+    return { layer:{ name:"udp", fields }, next: off+8, sport, dport };
+  }
+
+  // ---- tcp ----
+  function parseTCPDetailed(data, off) {
+    if (data.length < off + 20) return null;
+    const sport = (data[off]<<8)|data[off+1];
+    const dport = (data[off+2]<<8)|data[off+3];
+    const dataOff = (data[off+12]>>4) * 4;
+    if (dataOff < 20 || data.length < off + dataOff) return null;
+    const flagByte = data[off+13];
+    const flagNames = [];
+    if (flagByte & 0x80) flagNames.push("CWR");
+    if (flagByte & 0x40) flagNames.push("ECE");
+    if (flagByte & 0x20) flagNames.push("URG");
+    if (flagByte & 0x10) flagNames.push("ACK");
+    if (flagByte & 0x08) flagNames.push("PSH");
+    if (flagByte & 0x04) flagNames.push("RST");
+    if (flagByte & 0x02) flagNames.push("SYN");
+    if (flagByte & 0x01) flagNames.push("FIN");
+    const hex8 = (a, b) => [...data.subarray(a, b)].map(x => x.toString(16).padStart(2,"0")).join("");
+    const fields = [];
+    fields.push({ name:"sport",    value: String(sport),               start: off,    end: off+2 });
+    fields.push({ name:"dport",    value: String(dport),               start: off+2,  end: off+4 });
+    fields.push({ name:"seq",      value:`0x${hex8(off+4, off+8)}`,    start: off+4,  end: off+8 });
+    fields.push({ name:"ack",      value:`0x${hex8(off+8, off+12)}`,   start: off+8,  end: off+12 });
+    fields.push({ name:"data off", value:`${dataOff} bytes`,           start: off+12, end: off+13 });
+    fields.push({ name:"flags",    value: flagNames.join("|") || "0",  start: off+13, end: off+14 });
+    fields.push({ name:"window",   value: String((data[off+14]<<8)|data[off+15]), start: off+14, end: off+16 });
+    fields.push({ name:"checksum", value:`0x${((data[off+16]<<8)|data[off+17]).toString(16).padStart(4,"0")}`, start: off+16, end: off+18 });
+    if (dataOff > 20) {
+      fields.push({ name:"options", value:`${dataOff - 20} bytes`,     start: off+20, end: off+dataOff });
+    }
+    return { layer:{ name:"tcp", fields }, next: off+dataOff, sport, dport };
+  }
+
+  // ---- icmp ----
+  function parseICMPDetailed(data, off, isV6) {
+    if (data.length < off + 4) return null;
+    const fields = [
+      { name:"type",     value: String(data[off]),   start: off,   end: off+1 },
+      { name:"code",     value: String(data[off+1]), start: off+1, end: off+2 },
+      { name:"checksum", value:`0x${((data[off+2]<<8)|data[off+3]).toString(16).padStart(4,"0")}`, start: off+2, end: off+4 },
+    ];
+    return { name: isV6 ? "icmpv6" : "icmp", fields };
+  }
+
+  // ---- DNS ----
+  function parseDNSDetailed(data, off, end) {
+    if (end - off < 12) return null;
+    const fields = [];
+    const txid = (data[off]<<8)|data[off+1];
+    fields.push({ name:"tx id",    value:`0x${txid.toString(16).padStart(4,"0")}`, start: off, end: off+2 });
+    const flW = (data[off+2]<<8)|data[off+3];
+    const qr     = (flW>>15)&1;
+    const opcode = (flW>>11)&0xf;
+    const rcode  = flW & 0xf;
+    const opMap = {0:"query",1:"iquery",2:"status",4:"notify",5:"update"};
+    const rcMap = {0:"noerror",1:"formerr",2:"servfail",3:"nxdomain",4:"notimpl",5:"refused"};
+    fields.push({ name:"flags",    value:`${qr?"response":"query"} opcode=${opMap[opcode]||opcode} rcode=${rcMap[rcode]||rcode}`, start: off+2, end: off+4 });
+    const qd = (data[off+4]<<8)|data[off+5];
+    const an = (data[off+6]<<8)|data[off+7];
+    const ns = (data[off+8]<<8)|data[off+9];
+    const ar = (data[off+10]<<8)|data[off+11];
+    fields.push({ name:"counts",   value:`qd=${qd} an=${an} ns=${ns} ar=${ar}`, start: off+4, end: off+12 });
+
+    let cursor = off + 12;
+    const typeMap = {1:"A",2:"NS",5:"CNAME",6:"SOA",12:"PTR",15:"MX",16:"TXT",28:"AAAA",33:"SRV",65:"HTTPS",255:"ANY"};
+    for (let q = 0; q < qd && q < 4 && cursor < end; q++) {
+      const qStart = cursor;
+      const labels = [];
+      let safety = 0;
+      while (cursor < end && safety++ < 32) {
+        const len = data[cursor];
+        if (len === 0) { cursor++; break; }
+        if ((len & 0xc0) === 0xc0) { cursor += 2; break; }
+        if (len > 63 || cursor + 1 + len > end) { labels.push("(malformed)"); break; }
+        let lbl = "";
+        for (let j = 0; j < len; j++) {
+          const b = data[cursor + 1 + j];
+          lbl += (b >= 0x20 && b < 0x7f) ? String.fromCharCode(b) : ".";
+        }
+        labels.push(lbl);
+        cursor += 1 + len;
+      }
+      if (cursor + 4 <= end) {
+        const qt = (data[cursor]<<8)|data[cursor+1];
+        const qc = (data[cursor+2]<<8)|data[cursor+3];
+        fields.push({
+          name: `query #${q+1}`,
+          value: `${labels.join(".")} type=${typeMap[qt]||`type-${qt}`} class=${qc===1?"IN":qc}`,
+          start: qStart, end: cursor + 4
+        });
+        cursor += 4;
+      } else break;
+    }
+    return { name: "dns", fields };
+  }
+
+  // ---- HTTP ----
+  function parseHTTPDetailed(data, off, end) {
+    if (end - off < 8) return null;
+    // Read up to 2048 bytes as printable-ish ascii
+    const maxScan = Math.min(end - off, 2048);
+    let s = "";
+    for (let i = 0; i < maxScan; i++) {
+      const b = data[off + i];
+      s += (b >= 9 && b < 127) ? String.fromCharCode(b) : "\x00";
+    }
+    let kind, m;
+    m = s.match(/^(GET|POST|PUT|HEAD|DELETE|OPTIONS|PATCH|CONNECT|TRACE)\s+(\S+)\s+(HTTP\/\d\.\d)\r?\n/);
+    if (m) kind = "request";
+    else {
+      m = s.match(/^(HTTP\/\d\.\d)\s+(\d{3})\s*([^\r\n]*)\r?\n/);
+      if (m) kind = "response";
+      else return null;
+    }
+    const fields = [];
+    let cursorRel;
+    if (kind === "request") {
+      const methodEnd = m[1].length;
+      const uriStart  = methodEnd + 1;
+      const uriEnd    = uriStart + m[2].length;
+      const verStart  = uriEnd + 1;
+      const verEnd    = verStart + m[3].length;
+      fields.push({ name:"method",  value: m[1], start: off+0,        end: off+methodEnd });
+      fields.push({ name:"uri",     value: m[2], start: off+uriStart, end: off+uriEnd });
+      fields.push({ name:"version", value: m[3], start: off+verStart, end: off+verEnd });
+      cursorRel = m[0].length;
+    } else {
+      const verEnd = m[1].length;
+      fields.push({ name:"version", value: m[1], start: off,         end: off+verEnd });
+      const statStart = verEnd + 1;
+      const statEnd   = statStart + 3;
+      fields.push({ name:"status",  value:`${m[2]} ${m[3]}`.trim(), start: off+statStart, end: off+verEnd+m[0].length - verEnd - 1 });
+      cursorRel = m[0].length;
+    }
+    // Parse headers — only show "interesting" ones to keep view tight
+    const interest = new Set(["host","user-agent","cookie","authorization","referer","content-type","content-length","origin","x-forwarded-for","accept-language"]);
+    let pos = cursorRel;
+    let hdrCount = 0;
+    while (pos < s.length && hdrCount < 20) {
+      const eol = s.indexOf("\r\n", pos);
+      if (eol === -1 || eol === pos) break;
+      const line = s.substring(pos, eol);
+      const colon = line.indexOf(":");
+      if (colon > 0) {
+        const name = line.substring(0, colon).trim().toLowerCase();
+        const val  = line.substring(colon + 1).trim();
+        if (interest.has(name)) {
+          // byte range of the value
+          const valStartInS = pos + colon + 1 + (line.substring(colon + 1).match(/^\s*/)[0].length);
+          fields.push({ name, value: val.slice(0, 120), start: off + valStartInS, end: off + eol });
+          hdrCount++;
+        }
+      }
+      pos = eol + 2;
+    }
+    return { name: `http ${kind}`, fields };
+  }
+
+  // ---- TLS ClientHello ----
+  function parseTLSDetailed(data, off, end) {
+    if (end - off < 5 || data[off] !== 0x16 || data[off+1] !== 0x03) return null;
+    const fields = [];
+    const verMap = {0:"SSL 3.0",1:"TLS 1.0",2:"TLS 1.1",3:"TLS 1.2",4:"TLS 1.3"};
+    fields.push({ name:"record",     value:"handshake (0x16)",            start: off,    end: off+1 });
+    fields.push({ name:"rec version",value: verMap[data[off+2]] || `0x03${data[off+2].toString(16).padStart(2,"0")}`, start: off+1, end: off+3 });
+    const recLen = (data[off+3]<<8)|data[off+4];
+    fields.push({ name:"rec length", value: String(recLen),               start: off+3,  end: off+5 });
+
+    if (off + 9 > end) return { name:"tls", fields };
+    const hsType = data[off+5];
+    const hsMap = {1:"ClientHello",2:"ServerHello",11:"Certificate",16:"ClientKeyExchange",20:"Finished"};
+    fields.push({ name:"hs type",    value: hsMap[hsType] || `type-${hsType}`, start: off+5, end: off+6 });
+    const hsLen = (data[off+6]<<16)|(data[off+7]<<8)|data[off+8];
+    fields.push({ name:"hs length",  value: String(hsLen),                start: off+6, end: off+9 });
+
+    if (hsType !== 1) return { name:"tls", fields };
+    let cur = off + 9;
+    if (cur + 2 > end) return { name:"tls clienthello", fields };
+    const chVer = (data[cur]<<8)|data[cur+1];
+    fields.push({ name:"ch version", value: verMap[chVer & 0xff] || `0x${chVer.toString(16).padStart(4,"0")}`, start: cur, end: cur+2 });
+    cur += 2;
+    if (cur + 32 > end) return { name:"tls clienthello", fields };
+    fields.push({ name:"random",     value:"32 bytes",                    start: cur, end: cur+32 });
+    cur += 32;
+    if (cur + 1 > end) return { name:"tls clienthello", fields };
+    const sidLen = data[cur];
+    fields.push({ name:"session id", value:`${sidLen} bytes`,             start: cur, end: cur+1+sidLen });
+    cur += 1 + sidLen;
+    if (cur + 2 > end) return { name:"tls clienthello", fields };
+    const csLen = (data[cur]<<8)|data[cur+1];
+    fields.push({ name:"cipher suites", value:`${csLen/2} suite${csLen/2===1?"":"s"}`, start: cur, end: cur+2+csLen });
+    cur += 2 + csLen;
+    if (cur + 1 > end) return { name:"tls clienthello", fields };
+    const cmLen = data[cur];
+    fields.push({ name:"compression",   value:`${cmLen} method${cmLen===1?"":"s"}`, start: cur, end: cur+1+cmLen });
+    cur += 1 + cmLen;
+    if (cur + 2 > end) return { name:"tls clienthello", fields };
+    const extLen = (data[cur]<<8)|data[cur+1];
+    const extStart = cur + 2;
+    const extEnd = Math.min(end, extStart + extLen);
+    cur = extStart;
+    while (cur + 4 <= extEnd) {
+      const eType = (data[cur]<<8)|data[cur+1];
+      const eLen  = (data[cur+2]<<8)|data[cur+3];
+      const eEnd = cur + 4 + eLen;
+      if (eEnd > extEnd) break;
+      if (eType === 0x0000 && eLen >= 5) {
+        // server_name (SNI)
+        const nameLen = (data[cur+4+3]<<8)|data[cur+4+4];
+        const nameStart = cur + 4 + 5;
+        if (nameStart + nameLen <= eEnd) {
+          let sni = "";
+          let ok = true;
+          for (let j = 0; j < nameLen; j++) {
+            const b = data[nameStart + j];
+            if (b < 32 || b > 126) { ok = false; break; }
+            sni += String.fromCharCode(b);
+          }
+          if (ok) fields.push({ name:"sni", value: sni, start: nameStart, end: nameStart + nameLen });
+        }
+      } else if (eType === 0x000a) {
+        fields.push({ name:"groups",    value:`ext ${eLen}b`, start: cur, end: eEnd });
+      } else if (eType === 0x000d) {
+        fields.push({ name:"sig algos", value:`ext ${eLen}b`, start: cur, end: eEnd });
+      } else if (eType === 0x002b) {
+        fields.push({ name:"sup versions", value:`ext ${eLen}b`, start: cur, end: eEnd });
+      } else if (eType === 0x0010) {
+        fields.push({ name:"alpn",      value:`ext ${eLen}b`, start: cur, end: eEnd });
+      }
+      cur = eEnd;
+    }
+    return { name: "tls clienthello", fields };
+  }
+
+  // ---- NTP ----
+  function parseNTPDetailed(data, off) {
+    if (data.length < off + 48) return null;
+    const b0 = data[off];
+    const li      = (b0 >> 6) & 0x3;
+    const version = (b0 >> 3) & 0x7;
+    const mode    = b0 & 0x7;
+    const modeMap = {1:"sym-active",2:"sym-passive",3:"client",4:"server",5:"broadcast",6:"control",7:"private"};
+    const fields = [
+      { name:"li/vn/mode", value:`li=${li} v=${version} mode=${modeMap[mode]||mode}`, start: off, end: off+1 },
+      { name:"stratum",    value: String(data[off+1]), start: off+1, end: off+2 },
+      { name:"poll",       value: String(data[off+2]), start: off+2, end: off+3 },
+      { name:"precision",  value: String(data[off+3]<<24>>24 /* signed */), start: off+3, end: off+4 },
+      { name:"root delay", value:`0x${[...data.subarray(off+4, off+8)].map(b=>b.toString(16).padStart(2,"0")).join("")}`, start: off+4, end: off+8 },
+      { name:"refid",      value:`0x${[...data.subarray(off+12, off+16)].map(b=>b.toString(16).padStart(2,"0")).join("")}`, start: off+12, end: off+16 },
+      { name:"tx timestamp", value:`${[...data.subarray(off+40, off+48)].map(b=>b.toString(16).padStart(2,"0")).join("")}`, start: off+40, end: off+48 },
+    ];
+    return { name: "ntp", fields };
+  }
+
+  // ============================================================
+  // CORE ANALYSIS — operates purely on raw frame bytes
+  // ============================================================
+
+  // Position-by-position byte frequency.
+  // positions[i] = byte value (literal) | null (wildcard) | undefined (beyond range)
+  //
+  // Depth policy:
+  //   We do NOT stop at the shortest frame. Frames that don't reach position i
+  //   simply can't contribute a literal at that position; they're effectively
+  //   wildcards there. We keep scanning up to maxLen so deep app-layer patterns
+  //   (DNS qnames, HTTP Host headers, TLS SNI etc.) — which often sit well past
+  //   the average frame size — still get pinned as literals when enough frames
+  //   agree. Trailing pure-wildcard runs are trimmed at the end.
+  function positionalAnalysis(frames, threshold) {
+    const N = frames.length;
+    if (N === 0) return [];
+    const minCount = Math.max(1, Math.ceil(N * threshold));
+    let maxLen = 0;
+    for (const f of frames) if (f.length > maxLen) maxLen = f.length;
+
+    const positions = [];
+    const freq = new Uint32Array(256);
+
+    for (let i = 0; i < maxLen; i++) {
+      let reach = 0;
+      freq.fill(0);
+      for (let k = 0; k < N; k++) {
+        const f = frames[k];
+        if (i < f.length) { reach++; freq[f[i]]++; }
+      }
+      // If fewer than minCount frames even reach this position, a literal here
+      // is mathematically impossible. Emit a wildcard rather than stopping —
+      // a later position might still pin a literal that more frames reach.
+      if (reach < minCount) {
+        positions.push(null);
+        continue;
+      }
+      // Find modal byte and the runner-up.
+      let bestByte = 0, bestCount = 0, secondCount = 0;
+      for (let v = 0; v < 256; v++) {
+        if (freq[v] > bestCount) {
+          secondCount = bestCount;
+          bestCount = freq[v];
+          bestByte = v;
+        } else if (freq[v] > secondCount) {
+          secondCount = freq[v];
+        }
+      }
+      // Literal only if:
+      //   1. Modal count ≥ minCount (basic threshold), AND
+      //   2. Modal byte is a clear winner: it's present in MORE than half
+      //      of frames that reach this offset. This prevents the tie-bug
+      //      where two bytes each appear in exactly threshold% of frames
+      //      (e.g. swapped-chunk attacks where two byte values split 50/50).
+      //   3. Modal count strictly exceeds the runner-up (no exact ties).
+      const clearWinner = (bestCount > reach / 2) && (bestCount > secondCount);
+      positions.push((bestCount >= minCount && clearWinner) ? bestByte : null);
+    }
+
+    // Trim trailing wildcards
+    while (positions.length && positions[positions.length - 1] === null) positions.pop();
+    return positions;
+  }
+
+  // Check whether a frame matches the positional skeleton.
+  // Frames shorter than the skeleton can still match — as long as every
+  // literal position falls within the frame. Positions beyond the frame
+  // are treated as wildcards (consistent with positionalAnalysis emitting
+  // wildcards for under-reaching positions).
+  function frameMatchesPositions(frame, positions) {
+    for (let i = 0; i < positions.length; i++) {
+      const p = positions[i];
+      if (p === null) continue;
+      if (i >= frame.length) return false;
+      if (frame[i] !== p) return false;
+    }
+    return true;
+  }
+
+  // ============================================================
+  // FLOATING-SUBSTRING MINING — for patterns that move per frame
+  // ============================================================
+  // This is the key pass for attacks like DNS water torture, where each
+  // attack packet has a different-length random prefix followed by the
+  // same target domain. Positional analysis can never find such patterns
+  // because the literal bytes land at different offsets per packet. This
+  // pass mines byte sequences that appear in ≥ threshold of frames at
+  // ANY offset, then chains them into the regex with .* between them.
+  //
+  // Returns: [{ bytes:Uint8Array, count:int, medianOff:int }] sorted by
+  // medianOff so the regex emits them in roughly the order they appear.
+  function mineFloatingSubstrings(frames, binFrames, threshold) {
+    const N = frames.length;
+    if (N === 0) return [];
+    const minCount = Math.max(1, Math.ceil(N * threshold));
+    const SEED_N = 4; // seed n-gram length; extended outward greedily.
+                      // 4 bytes covers very short TLDs like ".com" or short
+                      // attack motifs; longer extensions are built up greedily.
+
+    // Cap per-frame scan to keep memory bounded on huge pcaps (avg DDoS
+    // pcap of 1MB has small frames so this is rarely hit).
+    const SCAN_LIMIT = 1500;
+
+    // Count distinct SEED_N-grams across frames (each counted once per frame).
+    // Key by binary string (1 char per byte) — fast and Map-friendly.
+    const counts = new Map();
+    for (let k = 0; k < N; k++) {
+      const bin = binFrames[k];
+      const scanEnd = Math.min(bin.length, SCAN_LIMIT) - SEED_N;
+      const seen = new Set();
+      for (let i = 0; i <= scanEnd; i++) {
+        const key = bin.substr(i, SEED_N);
+        if (!seen.has(key)) {
+          seen.add(key);
+          counts.set(key, (counts.get(key) || 0) + 1);
+        }
+      }
+    }
+
+    // Keep seeds above threshold
+    const survivors = [];
+    for (const [k, c] of counts) if (c >= minCount) survivors.push({ key: k, count: c });
+    if (survivors.length === 0) return [];
+    survivors.sort((a, b) => b.count - a.count);
+
+    // Helper: how many frames contain `s` (as a substring)?
+    function popCount(s) {
+      let n = 0;
+      for (let k = 0; k < N; k++) {
+        if (binFrames[k].indexOf(s) !== -1) n++;
+        // Early bail isn't worth it — N is typically <50k and indexOf is fast
+      }
+      return n;
+    }
+
+    // Extend a seed greedily outward. Each extension is kept only if the
+    // extended string still appears in ≥ minCount frames.
+    function extend(seed) {
+      let s = seed;
+      // Extend right
+      while (s.length < 256) {
+        // Look at the byte that follows `s` in each containing frame; pick
+        // the modal byte if it keeps us above minCount.
+        const right = new Uint32Array(256);
+        let cnt = 0;
+        for (let k = 0; k < N; k++) {
+          const bin = binFrames[k];
+          const idx = bin.indexOf(s);
+          if (idx === -1 || idx + s.length >= bin.length) continue;
+          right[bin.charCodeAt(idx + s.length)]++;
+          cnt++;
+        }
+        if (cnt < minCount) break;
+        let mv = 0, mc = 0;
+        for (let v = 0; v < 256; v++) if (right[v] > mc) { mc = right[v]; mv = v; }
+        if (mc < minCount) break;
+        s = s + String.fromCharCode(mv);
+      }
+      // Extend left
+      while (s.length < 256) {
+        const left = new Uint32Array(256);
+        let cnt = 0;
+        for (let k = 0; k < N; k++) {
+          const bin = binFrames[k];
+          const idx = bin.indexOf(s);
+          if (idx <= 0) continue;
+          left[bin.charCodeAt(idx - 1)]++;
+          cnt++;
+        }
+        if (cnt < minCount) break;
+        let mv = 0, mc = 0;
+        for (let v = 0; v < 256; v++) if (left[v] > mc) { mc = left[v]; mv = v; }
+        if (mc < minCount) break;
+        s = String.fromCharCode(mv) + s;
+      }
+      return s;
+    }
+
+    // Extend each surviving seed; track unique extended results.
+    const seenExtended = new Set();
+    const extended = [];
+    for (const { key } of survivors) {
+      // Skip seeds we've already absorbed into a previous extension
+      if (seenExtended.has(key)) continue;
+      const ext = extend(key);
+      // Mark every SEED_N-window of `ext` as absorbed so we don't re-extend
+      for (let i = 0; i + SEED_N <= ext.length; i++) {
+        seenExtended.add(ext.substr(i, SEED_N));
+      }
+      extended.push(ext);
+      // Cap total candidates for performance — we de-dupe below anyway
+      if (extended.length >= 100) break;
+    }
+
+    // De-dupe: if A contains B, drop B. Sort by length desc so longer wins.
+    extended.sort((a, b) => b.length - a.length);
+    const finalStrs = [];
+    for (const s of extended) {
+      let dup = false;
+      for (const f of finalStrs) {
+        if (f.indexOf(s) !== -1) { dup = true; break; }
+      }
+      if (!dup) finalStrs.push(s);
+    }
+
+    // Annotate each with count + min/median offset across frames
+    const annotated = [];
+    for (const s of finalStrs) {
+      const offsets = [];
+      for (let k = 0; k < N; k++) {
+        const idx = binFrames[k].indexOf(s);
+        if (idx !== -1) offsets.push(idx);
+      }
+      const count = offsets.length;
+      if (count < minCount) continue;
+      offsets.sort((a, b) => a - b);
+      const minOff    = offsets[0];
+      const medianOff = offsets[offsets.length >> 1];
+      // Convert binary string back to Uint8Array
+      const bytes = new Uint8Array(s.length);
+      for (let i = 0; i < s.length; i++) bytes[i] = s.charCodeAt(i);
+      annotated.push({ bytes, count, minOff, medianOff });
+    }
+
+    // Filter: drop substrings shorter than 4 bytes (regex noise)
+    const useful = annotated.filter(a => a.bytes.length >= 4);
+
+    // Sort by min offset (so they emit in the order they first appear)
+    useful.sort((a, b) => a.minOff - b.minOff);
+
+    return useful;
+  }
+
+  // ============================================================
+  // ALTERNATION MINING — find n-grams that float in wildcard regions
+  // ============================================================
+  // For each wildcard region of width >= 8 in the positional skeleton,
+  // look at the bytes in that region across all frames. Find n-grams
+  // (length 4..16) that recur in a high fraction of frames but at
+  // varying offsets within the region. Emit them as a (a|b|c) alt
+  // group when found.
+  function mineAlternations(frames, positions, threshold) {
+    const N = frames.length;
+    const minCount = Math.max(1, Math.ceil(N * threshold));
+
+    // Identify wildcard regions
+    const regions = [];
+    let inWild = false, regStart = 0;
+    for (let i = 0; i <= positions.length; i++) {
+      const isWild = (i < positions.length && positions[i] === null);
+      if (isWild && !inWild) { inWild = true; regStart = i; }
+      else if (!isWild && inWild) {
+        inWild = false;
+        if (i - regStart >= 8) regions.push({ start: regStart, end: i });
+      }
+    }
+
+    // For each region, find recurring n-grams.
+    const alts = new Map(); // regionStart → [{bytes, count}]
+    for (const region of regions) {
+      const width = region.end - region.start;
+      // Extract this region's slice from every frame (where it exists)
+      const slices = [];
+      for (const f of frames) {
+        if (f.length >= region.end) {
+          slices.push(f.subarray(region.start, region.end));
+        }
+      }
+      if (slices.length < minCount) continue;
+
+      // Try n-gram length 8 first, fall back to 6, then 4
+      let best = null;
+      for (const nLen of [8, 6, 4]) {
+        if (width < nLen) continue;
+        // Count distinct n-grams across slices (each n-gram counted once per slice)
+        const counts = new Map();      // ngramHex → count of slices containing it
+        const positionsByGram = new Map(); // ngramHex → Set of positions within region
+        for (const slice of slices) {
+          const seen = new Set();
+          const maxStart = slice.length - nLen;
+          for (let s = 0; s <= maxStart; s++) {
+            // Build hex key
+            let key = "";
+            for (let j = 0; j < nLen; j++) {
+              key += slice[s + j].toString(16).padStart(2, "0");
+            }
+            if (!seen.has(key)) {
+              seen.add(key);
+              counts.set(key, (counts.get(key) || 0) + 1);
+              if (!positionsByGram.has(key)) positionsByGram.set(key, new Set());
+              positionsByGram.get(key).add(s);
+            }
+          }
+        }
+        // Find candidates above threshold, with at least 2 distinct positions
+        // (i.e., they actually float — otherwise they'd be positional literals)
+        const candidates = [];
+        for (const [key, c] of counts) {
+          if (c < minCount) continue;
+          const posSet = positionsByGram.get(key);
+          if (posSet.size < 2) continue;
+          candidates.push({ key, count: c, positions: posSet.size, nLen });
+        }
+        if (candidates.length > 0) {
+          best = { nLen, candidates };
+          break;
+        }
+      }
+      if (!best) continue;
+
+      // Sort: prefer high count, then high distinct positions, then long
+      best.candidates.sort((a, b) =>
+        (b.count - a.count) || (b.positions - a.positions) || (b.nLen - a.nLen)
+      );
+
+      // De-overlap: if candidate B is a substring of candidate A, drop B.
+      const kept = [];
+      for (const cand of best.candidates) {
+        let subsumed = false;
+        for (const k of kept) {
+          if (k.key.indexOf(cand.key) !== -1) { subsumed = true; break; }
+        }
+        if (!subsumed) kept.push(cand);
+        if (kept.length >= 12) break;
+      }
+
+      // Greedy extension: try to grow each kept n-gram outward in the bytes
+      // where it appears, looking for adjacent bytes shared in ≥ minCount slices.
+      const extended = kept.map(cand => {
+        let bytes = [];
+        for (let j = 0; j < cand.key.length; j += 2) {
+          bytes.push(parseInt(cand.key.substr(j, 2), 16));
+        }
+        // Extend right
+        while (bytes.length < 24) {
+          const right = new Uint32Array(256);
+          let cnt = 0;
+          for (const slice of slices) {
+            const sliceBin = bytesToBinStr(slice);
+            const target = String.fromCharCode(...bytes);
+            const idx = sliceBin.indexOf(target);
+            if (idx === -1) continue;
+            if (idx + bytes.length >= slice.length) continue;
+            cnt++;
+            right[slice[idx + bytes.length]]++;
+          }
+          let mv = 0, mc = 0;
+          for (let v = 0; v < 256; v++) if (right[v] > mc) { mc = right[v]; mv = v; }
+          if (mc >= minCount) bytes.push(mv); else break;
+        }
+        // Extend left
+        while (bytes.length < 24) {
+          const left = new Uint32Array(256);
+          let cnt = 0;
+          for (const slice of slices) {
+            const sliceBin = bytesToBinStr(slice);
+            const target = String.fromCharCode(...bytes);
+            const idx = sliceBin.indexOf(target);
+            if (idx <= 0) continue;
+            cnt++;
+            left[slice[idx - 1]]++;
+          }
+          let mv = 0, mc = 0;
+          for (let v = 0; v < 256; v++) if (left[v] > mc) { mc = left[v]; mv = v; }
+          if (mc >= minCount) bytes.unshift(mv); else break;
+        }
+        return { bytes, count: cand.count };
+      });
+
+      // De-duplicate after extension (one may have grown into another)
+      const final = [];
+      extended.sort((a, b) => b.bytes.length - a.bytes.length);
+      for (const e of extended) {
+        const eStr = String.fromCharCode(...e.bytes);
+        let dup = false;
+        for (const f of final) {
+          const fStr = String.fromCharCode(...f.bytes);
+          if (fStr.indexOf(eStr) !== -1 || eStr.indexOf(fStr) !== -1) { dup = true; break; }
+        }
+        if (!dup) final.push(e);
+      }
+
+      // Apply 5-pipe cap: keep top 5 by count; if more candidates, keep the longest 5
+      if (final.length > 5) {
+        final.sort((a, b) => b.bytes.length - a.bytes.length);
+        final.length = 5;
+      }
+
+      if (final.length >= 2 || (final.length === 1 && final[0].bytes.length >= 8)) {
+        // Only emit alternation if multiple branches OR a single long find
+        alts.set(region.start, { region, alts: final });
+      }
+    }
+
+    return alts;
+  }
+
+  // ============================================================
+  // TAIL ALTERNATION — clusters discrete packet variants
+  // ============================================================
+  // After positional analysis pins the leading literal prefix and trailing
+  // literal suffix (if any), the bytes in between can vary in two ways:
+  //   (1) random/structureless (real wildcards), or
+  //   (2) discrete variants — N distinct byte sequences that recur many times
+  //
+  // Case (2) is what positional analysis gets wrong: at threshold 50% with
+  // two equally-common variants, no single byte hits >50% so no literals are
+  // emitted, but the variants ARE deterministic. The right output is
+  //   prefix (variant1 | variant2 | …) suffix
+  //
+  // This function detects case (2) by:
+  //   1. Finding the longest LITERAL prefix in the positions array.
+  //   2. Finding the longest LITERAL suffix.
+  //   3. Extracting the middle slice from every frame and grouping IDENTICAL
+  //      slices. If the top K (≤5) groups together cover ≥ threshold of
+  //      frames AND no single group dominates (otherwise positional would
+  //      have caught it), emit an alternation.
+  //
+  // Returns { prefix:int, suffix:int, branches:[Uint8Array,...] } or null.
+  function mineTailAlternation(frames, positions, threshold) {
+    const N = frames.length;
+    if (N < 2) return null;
+    const minCount = Math.max(1, Math.ceil(N * threshold));
+
+    // Longest literal prefix in the positional skeleton.
+    let prefixEnd = 0;
+    while (prefixEnd < positions.length && positions[prefixEnd] !== null) prefixEnd++;
+
+    // Determine the variable-region end: use the min frame length so every
+    // frame in the cohort has bytes through this offset.
+    let minFrameLen = Infinity;
+    for (const f of frames) if (f.length < minFrameLen) minFrameLen = f.length;
+    if (minFrameLen === Infinity) return null;
+
+    // Longest literal suffix WITHIN the positional skeleton.
+    // We only look inside positions.length for the suffix — if the skeleton
+    // doesn't extend past prefixEnd, there is no suffix and the entire tail
+    // is the alternation region.
+    let suffixStart;
+    if (positions.length > prefixEnd) {
+      suffixStart = positions.length;
+      while (suffixStart > prefixEnd && positions[suffixStart - 1] !== null) suffixStart--;
+      // If the entire post-prefix portion of the skeleton is literal, there's
+      // no internal variable region; fall back to using minFrameLen as the
+      // alternation region end.
+      if (suffixStart === positions.length) suffixStart = minFrameLen;
+    } else {
+      // No positional info past prefix — alternation runs from prefixEnd to
+      // the end of the shortest frame.
+      suffixStart = minFrameLen;
+    }
+    // Clamp suffixStart to minFrameLen so we don't read past the shortest frame.
+    if (suffixStart > minFrameLen) suffixStart = minFrameLen;
+
+    if (suffixStart - prefixEnd < 2) return null;
+
+    const middleLen = suffixStart - prefixEnd;
+    if (middleLen > 256) return null;
+
+    // Group frames by their middle slice (as a binary string).
+    const groups = new Map();
+    let analysed = 0;
+    for (const f of frames) {
+      if (f.length < suffixStart) continue;
+      analysed++;
+      let bin = "";
+      for (let i = prefixEnd; i < suffixStart; i++) bin += String.fromCharCode(f[i]);
+      groups.set(bin, (groups.get(bin) || 0) + 1);
+    }
+    if (groups.size < 2) return null;
+    if (groups.size > 20000) return null;
+
+    const sorted = [...groups.entries()].sort((a, b) => b[1] - a[1]);
+
+    // For meaningful alternation, top variants should collectively cover
+    // ≥ minCount frames, and each branch should appear at least twice and
+    // in at least 5% of the dataset.
+    let cumulative = 0;
+    const branches = [];
+    for (let i = 0; i < sorted.length && branches.length < 5; i++) {
+      const [bin, c] = sorted[i];
+      if (c < 2) break;
+      if (c / N < 0.05) break;
+      branches.push({ bin, count: c });
+      cumulative += c;
+    }
+
+    if (branches.length < 2) return null;
+    if (cumulative < minCount) return null;
+
+    const bytesBranches = branches.map(b => {
+      const arr = new Uint8Array(b.bin.length);
+      for (let i = 0; i < b.bin.length; i++) arr[i] = b.bin.charCodeAt(i);
+      return { bytes: arr, count: b.count };
+    });
+
+    return {
+      prefixEnd,
+      suffixStart,
+      branches: bytesBranches,
+      cumulative,
+      analysed,
+    };
+  }
+
+  // ============================================================
+  // REGEX EMISSION
+  // ============================================================
+  const REGEX_META_BYTES = new Set([..."\\.*+?()[]{}^$|/"].map(c => c.charCodeAt(0)));
+
+  function byteToAtom(b) {
+    if (b >= 0x20 && b < 0x7f && !REGEX_META_BYTES.has(b)) return String.fromCharCode(b);
+    return "\\x" + b.toString(16).padStart(2, "0");
+  }
+
+  function bytesToAtoms(bytes) {
+    let s = "";
+    for (const b of bytes) s += byteToAtom(b);
+    return s;
+  }
+
+  function wildRunToAtom(n) {
+    if (n === 0) return "";
+    if (n === 1) return ".";
+    return `.{${n}}`;
+  }
+
+  // Build the final regex string from:
+  //   positions    — per-offset literal/wildcard skeleton
+  //   altMap       — switched-position alternations within wildcard regions
+  //   floatingSubs — globally recurring substrings (mineFloatingSubstrings)
+  //
+  // Placement strategy:
+  //   For each floating substring we know `minOff` (the smallest offset at
+  //   which it appears in any frame). A float belongs AT OR AFTER its minOff.
+  //   We walk the positional skeleton; when we pass the minOff of a pending
+  //   float (reach the wildcard run that starts at or after it, or end the
+  //   skeleton entirely), we emit it.
+  //
+  //   We do NOT filter floats based on whether they overlap with positional
+  //   literals — emitting them twice is harmless to matching (the engine
+  //   greedily anchors literals) and ensures recurring substrings ALWAYS
+  //   appear in the regex even if positional analysis half-pinned them.
+  //
+  //   Each float emits exactly once. Order is by minOff so the regex roughly
+  //   mirrors the packet's natural byte order.
+  function buildRegex(positions, altMap, floatingSubs, tailAlt) {
+    // Defensive copy + sort by minOff
+    let floats = (floatingSubs || []).slice();
+    floats.sort((a, b) => (a.minOff || 0) - (b.minOff || 0));
+
+    // De-dup at the byte-content level: if A's bytes contain B's bytes, drop B.
+    // Walk longest-first to ensure we keep maximal motifs.
+    floats.sort((a, b) => b.bytes.length - a.bytes.length);
+    let kept = [];
+    for (const fs of floats) {
+      const sA = String.fromCharCode(...fs.bytes);
+      let dup = false;
+      for (const k of kept) {
+        const sK = String.fromCharCode(...k.bytes);
+        if (sK.indexOf(sA) !== -1) { dup = true; break; }
+      }
+      if (!dup) kept.push(fs);
+    }
+
+    // Drop floats already covered by the positional skeleton at their minOff.
+    const covered = (fs) => {
+      const start = fs.minOff;
+      if (start + fs.bytes.length > positions.length) return false;
+      for (let i = 0; i < fs.bytes.length; i++) {
+        const p = positions[start + i];
+        if (p === null || p !== fs.bytes[i]) return false;
+      }
+      return true;
+    };
+    kept = kept.filter(fs => !covered(fs));
+
+    // If a tail alternation is present, drop floats subsumed by it:
+    //   (a) floats whose minOff falls inside the alternation's variable region
+    //       (the alternation already represents bytes there),
+    //   (b) floats that are substrings of any alternation branch,
+    //   (c) floats that CONTAIN any alternation branch (the alternation captures
+    //       the per-packet variability more precisely than a single float, which
+    //       would just be one of the variants).
+    if (tailAlt) {
+      kept = kept.filter(fs => {
+        if (fs.minOff >= tailAlt.prefixEnd && fs.minOff < tailAlt.suffixStart) return false;
+        const sF = String.fromCharCode(...fs.bytes);
+        for (const br of tailAlt.branches) {
+          const sB = String.fromCharCode(...br.bytes);
+          if (sB.indexOf(sF) !== -1) return false;   // (b)
+          if (sF.indexOf(sB) !== -1) return false;   // (c)
+        }
+        return true;
+      });
+    }
+
+    kept.sort((a, b) => (a.minOff || 0) - (b.minOff || 0));
+
+    let out = "";
+    let i = 0;
+    let floatIdx = 0;
+
+    while (i < positions.length) {
+      // Tail alternation takes priority when we hit its prefixEnd.
+      if (tailAlt && i === tailAlt.prefixEnd) {
+        // Drain pending floats before emitting the alternation
+        while (floatIdx < kept.length && kept[floatIdx].minOff < i) {
+          out += ".*?" + bytesToAtoms(kept[floatIdx].bytes);
+          floatIdx++;
+        }
+        const branches = tailAlt.branches.map(b => bytesToAtoms(b.bytes));
+        out += "(" + branches.join("|") + ")";
+        i = tailAlt.suffixStart;
+        // Skip past any floats that lived in the alternation region
+        while (floatIdx < kept.length && kept[floatIdx].minOff < tailAlt.suffixStart) {
+          floatIdx++;
+        }
+        continue;
+      }
+
+      // Drain floats whose minOff is strictly before this offset
+      while (floatIdx < kept.length && kept[floatIdx].minOff < i) {
+        out += ".*?" + bytesToAtoms(kept[floatIdx].bytes);
+        floatIdx++;
+      }
+
+      // Alternation region (inner-wildcard variety) takes priority over plain wildcard
+      if (altMap && altMap.has(i)) {
+        const { region, alts } = altMap.get(i);
+        const branches = alts.map(a => bytesToAtoms(a.bytes));
+        branches.sort();
+        out += ".*?(" + branches.join("|") + ").*?";
+        while (floatIdx < kept.length && kept[floatIdx].minOff < region.end) {
+          out += bytesToAtoms(kept[floatIdx].bytes) + ".*?";
+          floatIdx++;
+        }
+        i = region.end;
+        continue;
+      }
+
+      if (positions[i] === null) {
+        // Find extent of this wildcard run
+        let wildEnd = i;
+        while (wildEnd < positions.length && positions[wildEnd] === null && !altMap.has(wildEnd)) {
+          wildEnd++;
+        }
+        const wildLen = wildEnd - i;
+
+        const here = [];
+        while (floatIdx < kept.length && kept[floatIdx].minOff < wildEnd) {
+          here.push(kept[floatIdx]);
+          floatIdx++;
+        }
+
+        if (here.length === 0) {
+          out += wildRunToAtom(wildLen);
+        } else {
+          out += ".*?";
+          for (let j = 0; j < here.length; j++) {
+            out += bytesToAtoms(here[j].bytes);
+            if (j < here.length - 1) out += ".*?";
+          }
+          out += ".*?";
+        }
+        i = wildEnd;
+      } else {
+        out += byteToAtom(positions[i]);
+        i++;
+      }
+    }
+
+    // If a tail alternation exists but the loop ended before reaching its
+    // prefixEnd (i.e. the positional skeleton is shorter than the prefix),
+    // emit it now. This is the common case for swapped-tail attacks where
+    // positional analysis only pins the common header prefix and the rest
+    // of every packet is the alternation.
+    if (tailAlt && i <= tailAlt.prefixEnd) {
+      // We may have a gap between `i` and `tailAlt.prefixEnd`. Fill with .*
+      // (we already trimmed trailing wildcards from positions, so this gap
+      // represents bytes that varied too much for a literal but are part of
+      // the packet structure).
+      const gap = tailAlt.prefixEnd - i;
+      if (gap > 0) out += wildRunToAtom(gap);
+      const branches = tailAlt.branches.map(b => bytesToAtoms(b.bytes));
+      out += "(" + branches.join("|") + ")";
+      i = tailAlt.suffixStart;
+    }
+
+    // Emit any remaining floats (they live past the skeleton's end).
+    if (floatIdx < kept.length) {
+      if (positions.length > 0 || tailAlt) out += ".*?";
+      while (floatIdx < kept.length) {
+        out += bytesToAtoms(kept[floatIdx].bytes);
+        floatIdx++;
+        if (floatIdx < kept.length) out += ".*?";
+      }
+    }
+
+    return out;
+  }
+
+  // ============================================================
+  // PER-COVERAGE RESULT BUILDER
+  // ============================================================
+  function buildResultForCoverage(threshold, frames, binFrames) {
+    const positions    = positionalAnalysis(frames, threshold);
+    const altMap       = mineAlternations(frames, positions, threshold);
+    const tailAlt      = mineTailAlternation(frames, positions, threshold);
+    const floatingSubs = mineFloatingSubstrings(frames, binFrames, threshold);
+    const regex        = buildRegex(positions, altMap, floatingSubs, tailAlt);
+
+    // Compute actual match count via the assembled regex; fall back to
+    // positional matching if the regex doesn't compile.
+    let actual = 0;
+    let exampleIdx = -1;
+    let exampleLen = -1;
+    let jsRegex = null;
+    try { jsRegex = new RegExp(regex, "s"); } catch (e) { jsRegex = null; }
+
+    if (jsRegex) {
+      for (let k = 0; k < frames.length; k++) {
+        if (jsRegex.test(binFrames[k])) {
+          actual++;
+          if (frames[k].length > exampleLen) {
+            exampleLen = frames[k].length;
+            exampleIdx = k;
+          }
+        }
+      }
+    } else {
+      for (let k = 0; k < frames.length; k++) {
+        if (frameMatchesPositions(frames[k], positions)) {
+          actual++;
+          if (frames[k].length > exampleLen) {
+            exampleLen = frames[k].length;
+            exampleIdx = k;
+          }
+        }
+      }
+    }
+
+    let literalCount = 0;
+    for (const p of positions) if (p !== null) literalCount++;
+
+    return {
+      threshold,
+      positions,
+      altMap,
+      floatingSubs,
+      tailAlt,
+      regex,
+      actual,
+      exampleIdx,
+      literalCount,
+      altCount:      altMap.size,
+      floatingCount: floatingSubs.length,
+      tailBranches:  tailAlt ? tailAlt.branches.length : 0,
+    };
+  }
+
+  // ============================================================
+  // RENDERING
+  // ============================================================
+  function renderSummary() {
+    const lines = [];
+    const padKey = (k, w = 13) => (k + ":").padEnd(w, " ");
+    lines.push(padKey("file")     + state.fileName);
+    lines.push(padKey("size")     + fmtBytes(state.fileBytes));
+    lines.push(padKey("format")   + state.format);
+    lines.push(padKey("frames")   + `${state.totalFrameCount} parsed`);
+    if (state.frames.length !== state.totalFrameCount) {
+      lines.push(padKey("usable")   + `${state.frames.length} (others had length 0)`);
+    }
+    let totalBytes = 0;
+    let minLen = Infinity, maxLen = 0;
+    for (const f of state.frames) {
+      totalBytes += f.length;
+      if (f.length < minLen) minLen = f.length;
+      if (f.length > maxLen) maxLen = f.length;
+    }
+    lines.push(padKey("frame size") + `min ${minLen}b · avg ${(totalBytes/state.frames.length)|0}b · max ${maxLen}b`);
+    lines.push(padKey("total data") + fmtBytes(totalBytes));
+    setBody("b-sum", lines.join("\n"));
+    setMeta("m-sum", `${state.frames.length} frames`);
+  }
+
+  function renderRegexCard(result, ctx) {
+    ctx = ctx || { ids:{b:"b-re", m:"m-re"}, totalFrames: state.frames.length };
+    setBody(ctx.ids.b, result.regex || "(empty — no literal bytes met the threshold)",
+            result.regex.length === 0);
+    setMeta(ctx.ids.m, `${result.regex.length} chars · matches ${result.actual}/${ctx.totalFrames}`);
+  }
+
+  // Hex+ASCII dump with literal vs wildcard highlighting, plus parsed protocol
+  // tree on the right with the same highlighting applied per-field.
+  function renderExampleCard(result, ctx) {
+    ctx = ctx || {
+      ids: { b: "b-ex", m: "m-ex" },
+      frames: state.frames,
+      linktypes: state.frameLinktypes,
+      totalFrames: state.frames.length,
+    };
+    if (result.exampleIdx === -1) {
+      setBody(ctx.ids.b,
+        "no matching frame found at this coverage target — the regex is empty\n" +
+        "or unable to match any frame as-built.",
+        true);
+      setMeta(ctx.ids.m, "no match");
+      return;
+    }
+    const frame = ctx.frames[result.exampleIdx];
+    const positions = result.positions;
+    const linktype = ctx.linktypes[result.exampleIdx];
+
+    // -- LEFT: hex dump --
+    const ROW = 16;
+    const rows = [];
+    for (let r = 0; r < frame.length; r += ROW) {
+      const offsetStr = `<span class="off">${r.toString(16).padStart(4, "0")}</span>`;
+      const hexParts = [];
+      const ascParts = [];
+      for (let c = 0; c < ROW; c++) {
+        const i = r + c;
+        if (i >= frame.length) {
+          hexParts.push("  ");
+          ascParts.push(" ");
+          continue;
+        }
+        const b = frame[i];
+        let cls;
+        if (i >= positions.length)         cls = "byte-out";
+        else if (positions[i] === null)    cls = "byte-wild";
+        else                               cls = "byte-lit-bg";
+        const hex = b.toString(16).padStart(2, "0");
+        hexParts.push(`<span class="${cls}">${hex}</span>`);
+        const ch = (b >= 0x20 && b < 0x7f) ? String.fromCharCode(b) : ".";
+        ascParts.push(`<span class="${cls}">${escapeHtml(ch)}</span>`);
+      }
+      const hexLeft  = hexParts.slice(0, 8).join(" ");
+      const hexRight = hexParts.slice(8).join(" ");
+      const asc      = ascParts.join("");
+      rows.push(`<span class="row">${offsetStr}  ${hexLeft}  ${hexRight}  <span class="sep">|</span>${asc}<span class="sep">|</span></span>`);
+    }
+    const hexHtml = '<div class="hex-dump">' + rows.join("\n") + '</div>';
+
+    // -- RIGHT: parsed protocol tree --
+    function classifyRange(start, end) {
+      let lit = 0, wild = 0, out = 0;
+      for (let i = start; i < end; i++) {
+        if (i >= positions.length)       out++;
+        else if (positions[i] === null)  wild++;
+        else                             lit++;
+      }
+      const total = end - start;
+      if (lit === total) return "match-full";
+      if (lit > 0)       return "match-part";
+      return "";
+    }
+
+    const detailed = parseFrameDetailed(frame, linktype);
+    let treeHtml = '<div class="parsed-tree">';
+    if (detailed.layers.length === 0) {
+      treeHtml += '<div class="layer"><div class="layer-name">unrecognised</div>' +
+                  '<div class="field"><span class="fn">linktype</span>' +
+                  `<span class="fv">${escapeHtml(String(linktype))}</span></div></div>`;
+    } else {
+      for (const layer of detailed.layers) {
+        treeHtml += `<div class="layer"><div class="layer-name">${escapeHtml(layer.name)}</div>`;
+        for (const f of layer.fields) {
+          const cls = classifyRange(f.start, f.end);
+          treeHtml += `<div class="field"><span class="fn">${escapeHtml(f.name)}</span>` +
+                      `<span class="fv ${cls}">${escapeHtml(f.value)}</span></div>`;
+        }
+        treeHtml += '</div>';
+      }
+    }
+    treeHtml += '</div>';
+
+    let litInRange = 0, wildInRange = 0;
+    for (const p of positions) {
+      if (p === null) wildInRange++;
+      else litInRange++;
+    }
+    const afterRange = Math.max(0, frame.length - positions.length);
+
+    const html =
+      '<div class="example-split">' +
+        '<div class="ex-left">' + hexHtml + '</div>' +
+        '<div class="ex-right">' + treeHtml + '</div>' +
+      '</div>' +
+      `\n\nframe #${result.exampleIdx + 1} of ${ctx.totalFrames} · ${frame.length} bytes` +
+      `\nlegend: ` +
+      `<span class="byte-lit-bg" style="padding:1px 4px">literal-matched (${litInRange})</span>  ` +
+      `<span class="byte-wild">wildcard (${wildInRange})</span>  ` +
+      `<span class="byte-out">beyond regex range (${afterRange})</span>`;
+
+    setBodyHtml(ctx.ids.b, html);
+    setMeta(ctx.ids.m, `frame #${result.exampleIdx + 1} · ${frame.length}b`);
+  }
+
+  function renderSubstringsCard(result, ctx) {
+    ctx = ctx || { ids: { b: "b-subs", m: "m-subs" }, totalFrames: state.frames.length };
+    const subs = result.floatingSubs || [];
+    const tailAlt = result.tailAlt;
+    const N = ctx.totalFrames;
+    const lines = [];
+
+    if (tailAlt) {
+      lines.push(`── tail alternation ──`);
+      lines.push(`region [${tailAlt.prefixEnd}, ${tailAlt.suffixStart})  ·  ` +
+                 `${tailAlt.branches.length} distinct variant${tailAlt.branches.length === 1 ? "" : "s"}  ·  ` +
+                 `${tailAlt.cumulative}/${N} frames covered (${(tailAlt.cumulative/N*100).toFixed(0)}%)`);
+      lines.push("");
+      lines.push("  freq      ×count  len  variant content");
+      lines.push("  ────────  ──────  ───  ────────────────────────────────────────");
+      for (const br of tailAlt.branches) {
+        const pct = (br.count / N * 100).toFixed(0).padStart(3);
+        const cnt = String(br.count).padStart(6);
+        const len = String(br.bytes.length).padStart(3);
+        let disp = "";
+        let allPrint = true;
+        for (const b of br.bytes) {
+          if (b >= 0x20 && b < 0x7f) disp += String.fromCharCode(b);
+          else { disp += "·"; allPrint = false; }
+        }
+        lines.push(`  ${pct}%      ${cnt}  ${len}  ${disp}`);
+        if (!allPrint) {
+          let hex = "";
+          for (const b of br.bytes) hex += b.toString(16).padStart(2, "0");
+          lines.push(`                          hex: ${hex}`);
+        }
+      }
+      lines.push("");
+      lines.push(`emitted as: (variant1|variant2|…) inside the regex`);
+      lines.push("");
+    }
+
+    if (subs.length === 0 && !tailAlt) {
+      setBody(ctx.ids.b,
+        "no recurring byte substrings or alternation variants found at this threshold.\n" +
+        "lower the threshold or check that the pcap actually contains a coherent\n" +
+        "attack signature — fully randomised flooders (cookie-only spoofed syn) won't\n" +
+        "leave a payload pattern.",
+        true);
+      setMeta(ctx.ids.m, "none");
+      return;
+    }
+
+    if (subs.length > 0) {
+      lines.push(`── floating substrings ──`);
+      lines.push(`${subs.length} unique substring${subs.length === 1 ? "" : "s"} ` +
+                 `at or above current threshold:`);
+      lines.push("");
+      lines.push("  freq    min  med  len  content");
+      lines.push("  ──────  ───  ───  ───  ────────────────────────────────────────");
+      for (const fs of subs) {
+        const pct = (fs.count / N * 100).toFixed(0).padStart(3);
+        const cnt = String(fs.count).padStart(5);
+        const mi  = String(fs.minOff).padStart(3);
+        const med = String(fs.medianOff).padStart(3);
+        const len = String(fs.bytes.length).padStart(3);
+        let disp = "";
+        let allPrint = true;
+        for (const b of fs.bytes) {
+          if (b >= 0x20 && b < 0x7f) disp += String.fromCharCode(b);
+          else { disp += "·"; allPrint = false; }
+        }
+        lines.push(`  ×${cnt}  ${mi}  ${med}  ${len}  ${disp}`);
+        if (!allPrint) {
+          let hex = "";
+          for (const b of fs.bytes) hex += b.toString(16).padStart(2, "0");
+          lines.push(`                          hex: ${hex}`);
+        }
+      }
+      lines.push("");
+      lines.push(`legend: freq = packets containing this substring (×count)`);
+      lines.push(`        min  = earliest offset seen across packets`);
+      lines.push(`        med  = median offset across packets`);
+    }
+    setBody(ctx.ids.b, lines.join("\n"));
+    const metaParts = [];
+    if (tailAlt) metaParts.push(`${tailAlt.branches.length}-way tail alt`);
+    if (subs.length) metaParts.push(`${subs.length} float${subs.length === 1 ? "" : "s"}`);
+    setMeta(ctx.ids.m, metaParts.join(" · ") || "none");
+  }
+
+  function renderStats(result) {
+    const t = result.threshold;
+    $("s-target").textContent = (t * 100).toFixed(0) + "%";
+    const pct = (result.actual / state.frames.length * 100).toFixed(1);
+    $("s-actual").textContent = `${result.actual}/${state.frames.length} (${pct}%)`;
+    $("s-literals").textContent = `${result.literalCount}/${result.positions.length}`;
+    $("s-rlen").textContent = `${result.regex.length} chars`;
+    $("s-float").textContent = `${result.floatingCount} found`;
+    $("s-alt").textContent  = `${result.altCount} region${result.altCount === 1 ? "" : "s"}`;
+  }
+
+  // ============================================================
+  // MODE SWITCHING & MULTI-VECTOR RENDERING
+  // ============================================================
+  function applyMode() {
+    const isMulti = state.mode === "multi";
+
+    // Single-vector UI elements
+    const output = $("output");
+    const singleSliderRow = $("single-slider-row");
+    const singleStatBar = $("single-stat-bar");
+    const multiOutput = $("multi-output");
+
+    if (isMulti) {
+      // hide single-vector slider/stats; keep mode toggle visible
+      singleSliderRow.classList.add("hidden");
+      $("stops").classList.add("hidden");
+      singleStatBar.classList.add("hidden");
+      output.classList.add("hidden");
+      multiOutput.classList.remove("hidden");
+      $("mode-desc").textContent = `split into top ${state.vectors.length} (proto, dst port) groups and derive a separate regex per group`;
+      renderMulti();
+    } else {
+      singleSliderRow.classList.remove("hidden");
+      $("stops").classList.remove("hidden");
+      singleStatBar.classList.remove("hidden");
+      output.classList.remove("hidden");
+      multiOutput.classList.add("hidden");
+      $("mode-desc").textContent = "treat all frames as one cohort";
+      renderSingle();
+    }
+  }
+
+  function renderSingle() {
+    if (state.results.length === 0) return;
+    const result = state.results[state.currentIdx];
+    renderRegexCard(result);
+    renderExampleCard(result);
+    renderSubstringsCard(result);
+    renderStats(result);
+    const stops = stopsEl.querySelectorAll(".stop");
+    stops.forEach((s, idx) => s.classList.toggle("active", idx === state.currentIdx));
+  }
+
+  // Build the entire multi-vector DOM from scratch each time mode is entered;
+  // subsequent slider changes only update the relevant block's cards.
+  function renderMulti() {
+    const container = $("multi-output");
+    container.innerHTML = "";
+
+    if (state.vectors.length === 0) {
+      container.innerHTML = '<div class="variant"><div class="variant-body empty">no parseable flows in this pcap</div></div>';
+      return;
+    }
+
+    // One block per vector
+    for (let v = 0; v < state.vectors.length; v++) {
+      const vec = state.vectors[v];
+      const results = state.vectorResults[v];
+      const block = document.createElement("div");
+      block.className = "vector-block";
+      block.dataset.vec = v;
+      const pct = (vec.frames.length / state.frames.length * 100).toFixed(1);
+
+      block.innerHTML =
+        `<div class="vector-block-head">` +
+          `<div class="vbh-name"><span class="vbh-tag">vec ${v + 1}</span>` +
+          `<span>${escapeHtml(vec.label)}</span></div>` +
+          `<div class="vbh-stats">${vec.frames.length} frames · ${pct}% of pcap</div>` +
+        `</div>` +
+        `<div class="vector-block-body">` +
+          `<div class="slider-row">` +
+            `<span class="label">coverage</span>` +
+            `<input type="range" class="sens" data-vec-slider="${v}" min="0" max="4" step="1" value="${state.vectorCurrentIdx[v]}">` +
+          `</div>` +
+          `<div class="stops" data-vec-stops="${v}">` +
+            COVERAGES.map((c, i) =>
+              `<span class="stop ${i === state.vectorCurrentIdx[v] ? "active" : ""}" ` +
+              `data-vec="${v}" data-i="${i}">${(c*100)|0}%</span>`
+            ).join("") +
+          `</div>` +
+          `<div class="stat-bar">` +
+            `<div class="stat">` +
+              `<span class="k">target</span>` +
+              `<span class="v" id="s-target-${v}">—</span>` +
+            `</div>` +
+            `<div class="stat accent">` +
+              `<span class="k">vector match</span>` +
+              `<span class="v" id="s-actual-${v}">—</span>` +
+            `</div>` +
+            `<div class="stat">` +
+              `<span class="k">whole-pcap match</span>` +
+              `<span class="v" id="s-pcap-${v}">—</span>` +
+            `</div>` +
+            `<div class="stat">` +
+              `<span class="k">overlap (other vectors)</span>` +
+              `<span class="v" id="s-overlap-${v}">—</span>` +
+            `</div>` +
+            `<div class="stat">` +
+              `<span class="k">regex length</span>` +
+              `<span class="v" id="s-rlen-${v}">—</span>` +
+            `</div>` +
+          `</div>` +
+          `<div class="variants">` +
+            `<div class="variant vr">` +
+              `<div class="variant-head">` +
+                `<span class="label"><span class="tag">regex</span> ${escapeHtml(vec.label)} · pcre escape string</span>` +
+                `<span class="meta" id="m-re-${v}">—</span>` +
+              `</div>` +
+              `<div class="variant-body empty" id="b-re-${v}">waiting<div class="ctrl"><button class="copy-btn" data-copy="b-re-${v}">copy</button></div></div>` +
+            `</div>` +
+            `<div class="variant v1">` +
+              `<div class="variant-head">` +
+                `<span class="label"><span class="tag">example</span> matching packet · highlighted</span>` +
+                `<span class="meta" id="m-ex-${v}">—</span>` +
+              `</div>` +
+              `<div class="variant-body empty" id="b-ex-${v}">waiting<div class="ctrl"><button class="copy-btn" data-copy="b-ex-${v}">copy</button></div></div>` +
+            `</div>` +
+            `<div class="variant v0">` +
+              `<div class="variant-head">` +
+                `<span class="label"><span class="tag">substrings</span> recurring sequences in this vector</span>` +
+                `<span class="meta" id="m-subs-${v}">—</span>` +
+              `</div>` +
+              `<div class="variant-body empty" id="b-subs-${v}">waiting<div class="ctrl"><button class="copy-btn" data-copy="b-subs-${v}">copy</button></div></div>` +
+            `</div>` +
+          `</div>` +
+        `</div>`;
+      container.appendChild(block);
+    }
+
+    // Combined regex card
+    const combined = document.createElement("div");
+    combined.className = "combined";
+    combined.innerHTML =
+      `<div class="combined-head">` +
+        `<span class="label"><span class="tag">combined</span> alternation of selected vectors</span>` +
+        `<span class="meta" id="m-combined">—</span>` +
+      `</div>` +
+      `<div class="vector-toggles" id="vector-toggles"></div>` +
+      `<div class="combined-body" id="b-combined">—<div class="ctrl"><button class="copy-btn" data-copy="b-combined">copy</button></div></div>`;
+    container.appendChild(combined);
+
+    // Vector toggle pills
+    const togWrap = $("vector-toggles");
+    for (let v = 0; v < state.vectors.length; v++) {
+      const t = document.createElement("button");
+      t.className = "vector-toggle" + (state.vectorEnabled[v] ? " on" : "");
+      t.dataset.vec = v;
+      t.innerHTML = `<span class="checkbox"></span><span>${escapeHtml(state.vectors[v].label)} (${state.vectors[v].frames.length})</span>`;
+      togWrap.appendChild(t);
+    }
+
+    // Initial card population for every vector
+    for (let v = 0; v < state.vectors.length; v++) renderVectorBlock(v);
+    renderCombined();
+  }
+
+  function renderVectorBlock(v) {
+    const vec = state.vectors[v];
+    const results = state.vectorResults[v];
+    const tIdx = state.vectorCurrentIdx[v];
+    const result = results[tIdx];
+
+    const ctx = {
+      ids: { b: null, m: null },
+      frames: vec.frames,
+      linktypes: vec.linktypes,
+      totalFrames: vec.frames.length,
+    };
+
+    // Helpers for stat formatting
+    const N_total = state.frames.length;
+    const N_vec = vec.frames.length;
+
+    if (!result) {
+      setBody(`b-re-${v}`, "(too few frames in this vector to derive a regex — need ≥ 2)", true);
+      setMeta(`m-re-${v}`, "no regex");
+      setBody(`b-ex-${v}`, "(no example available)", true);
+      setMeta(`m-ex-${v}`, "—");
+      setBody(`b-subs-${v}`, "(no analysis)", true);
+      setMeta(`m-subs-${v}`, "—");
+      // Clear the stat bar
+      $(`s-target-${v}`).textContent = "—";
+      $(`s-actual-${v}`).textContent = "—";
+      $(`s-pcap-${v}`).textContent = "—";
+      $(`s-overlap-${v}`).textContent = "—";
+      $(`s-rlen-${v}`).textContent = "—";
+      return;
+    }
+
+    ctx.ids = { b: `b-re-${v}`, m: `m-re-${v}` };
+    renderRegexCard(result, ctx);
+
+    ctx.ids = { b: `b-ex-${v}`, m: `m-ex-${v}` };
+    renderExampleCard(result, ctx);
+
+    ctx.ids = { b: `b-subs-${v}`, m: `m-subs-${v}` };
+    renderSubstringsCard(result, ctx);
+
+    // Update stop labels for this block
+    document.querySelectorAll(`[data-vec-stops="${v}"] .stop`).forEach((s, idx) => {
+      s.classList.toggle("active", idx === tIdx);
+    });
+
+    // --- stat bar ---
+    // result.actual is already the count of vec.frames matching the regex.
+    // whole-pcap match: apply the same regex to ALL frames in the pcap.
+    let pcapMatch = result.actual; // start with known per-vector matches
+    let jsRegex = null;
+    try { jsRegex = new RegExp(result.regex, "s"); } catch (e) { jsRegex = null; }
+    if (jsRegex) {
+      // Count matches across all OTHER frames (not in this vector)
+      // and add to per-vector count to get total pcap match.
+      const inVec = new Set(vec.frameIdx);
+      let otherMatch = 0;
+      for (let k = 0; k < state.frames.length; k++) {
+        if (inVec.has(k)) continue;
+        if (jsRegex.test(state.binFrames[k])) otherMatch++;
+      }
+      pcapMatch = result.actual + otherMatch;
+      // overlap = matches against frames NOT in this vector
+      const overlapPct = (otherMatch / N_total * 100).toFixed(1);
+      const overlapEl = $(`s-overlap-${v}`);
+      overlapEl.textContent = `${otherMatch}/${N_total - N_vec} (${overlapPct}%)`;
+      // Warn if non-trivial overlap (>1% of other-frames pool)
+      const otherFramePool = N_total - N_vec;
+      const overlapRatio = otherFramePool > 0 ? otherMatch / otherFramePool : 0;
+      overlapEl.classList.toggle("warn", overlapRatio > 0.01);
+    } else {
+      $(`s-overlap-${v}`).textContent = "n/a";
+    }
+
+    $(`s-target-${v}`).textContent = (result.threshold * 100).toFixed(0) + "%";
+    const actualPct = (result.actual / N_vec * 100).toFixed(1);
+    $(`s-actual-${v}`).textContent = `${result.actual}/${N_vec} (${actualPct}%)`;
+    const pcapPct = (pcapMatch / N_total * 100).toFixed(1);
+    $(`s-pcap-${v}`).textContent = `${pcapMatch}/${N_total} (${pcapPct}%)`;
+    $(`s-rlen-${v}`).textContent = `${result.regex.length} chars`;
+  }
+
+  // Build the combined regex from the currently-enabled vectors at their
+  // currently-selected thresholds.
+  function buildCombinedRegex() {
+    const parts = [];
+    let totalMatched = 0;
+    let totalFrames = 0;
+    for (let v = 0; v < state.vectors.length; v++) {
+      if (!state.vectorEnabled[v]) continue;
+      const result = state.vectorResults[v][state.vectorCurrentIdx[v]];
+      if (!result || !result.regex) continue;
+      parts.push({
+        v, label: state.vectors[v].label,
+        regex: result.regex,
+        threshold: result.threshold,
+        actual: result.actual,
+        n: state.vectors[v].frames.length,
+      });
+      totalMatched += result.actual;
+      totalFrames += state.vectors[v].frames.length;
+    }
+    return { parts, totalMatched, totalFrames };
+  }
+
+  function renderCombined() {
+    const { parts, totalMatched, totalFrames } = buildCombinedRegex();
+    if (parts.length === 0) {
+      setBody("b-combined",
+        "no vectors enabled — toggle one or more vector pills above to build a combined regex",
+        true);
+      setMeta("m-combined", "0 vectors");
+      return;
+    }
+
+    const lines = [];
+    lines.push(`── per-vector regexes (use each with its own filter) ──`);
+    for (const p of parts) {
+      lines.push("");
+      lines.push(`# vector ${p.v + 1} · ${p.label} · threshold ${(p.threshold*100)|0}% · matches ${p.actual}/${p.n}`);
+      lines.push(p.regex);
+    }
+    lines.push("");
+    lines.push(`── single combined regex (whole-payload engines: snort/suricata content+pcre) ──`);
+    // Wrap each vector regex in a non-capturing group and combine with |
+    // We use a capturing group since not all engines support (?:...).
+    if (parts.length === 1) {
+      lines.push(parts[0].regex);
+    } else {
+      lines.push(parts.map(p => `(${p.regex})`).join("|"));
+    }
+    lines.push("");
+    lines.push(`covers ${totalMatched}/${totalFrames} frames across selected vectors ` +
+               `(${(totalMatched/totalFrames*100).toFixed(1)}%) ` +
+               `· ${totalMatched}/${state.frames.length} of total pcap ` +
+               `(${(totalMatched/state.frames.length*100).toFixed(1)}%)`);
+
+    setBody("b-combined", lines.join("\n"));
+    setMeta("m-combined",
+      `${parts.length} vector${parts.length === 1 ? "" : "s"} · ` +
+      `${totalMatched}/${state.frames.length} frames`);
+  }
+
+  // ============================================================
+  // FILE LOAD
+  // ============================================================
+  async function handleFile(file) {
+    if (!file) return;
+    state.fileName  = file.name;
+    state.fileBytes = file.size;
+    setStatus("reading file", "loading");
+    dropzone.classList.add("has-file");
+    dzMain.innerHTML = `<span class="fname">${escapeHtml(file.name)}</span><span class="freplace">click to replace</span>`;
+    dzSub.textContent = `${fmtBytes(file.size)} · parsing…`;
+
+    let buf;
+    try { buf = await file.arrayBuffer(); }
+    catch (e) {
+      setStatus("read failed", "error");
+      dzSub.textContent = "could not read file: " + e.message;
+      return;
+    }
+
+    // Try classic pcap then pcapng
+    let parsed = parsePcapClassic(buf);
+    if (!parsed) parsed = parsePcapng(buf);
+    if (!parsed) {
+      setStatus("not a pcap", "error");
+      dzSub.textContent = "file does not start with a recognised pcap or pcapng magic number";
+      controls.classList.add("hidden");
+      output.classList.add("hidden");
+      return;
+    }
+
+    state.format = parsed.format;
+    state.totalFrameCount = parsed.records.length;
+    state.frames = [];
+    state.frameLinktypes = [];
+    for (const rec of parsed.records) {
+      if (rec.data.length > 0) {
+        state.frames.push(rec.data);
+        state.frameLinktypes.push(rec.linktype);
+      }
+    }
+
+    if (state.frames.length < 2) {
+      setStatus("too few frames", "error");
+      dzSub.textContent = `${parsed.format} parsed, but only ${state.frames.length} frame(s) — need at least 2 to derive patterns`;
+      controls.classList.add("hidden");
+      output.classList.add("hidden");
+      return;
+    }
+
+    // Pre-compute binary strings for regex matching (one per frame)
+    setStatus("indexing frames", "loading");
+    state.binFrames = state.frames.map(bytesToBinStr);
+
+    // Compute single-vector results (all 5 thresholds against all frames)
+    setStatus("computing single-vector regexes", "loading");
+    state.results = [];
+    for (const t of COVERAGES) {
+      state.results.push(buildResultForCoverage(t, state.frames, state.binFrames));
+      await new Promise(r => setTimeout(r, 0));
+    }
+
+    // Compute multi-vector results: top-5 (proto, dport) buckets,
+    // each with all 5 thresholds.
+    setStatus("clustering by (proto, port)", "loading");
+    state.vectors = groupByFlow(state.frames, state.frameLinktypes, state.binFrames, 5);
+    setStatus(`computing ${state.vectors.length} × 5 vector regexes`, "loading");
+    state.vectorResults = []; // [vectorIdx][thresholdIdx]
+    state.vectorCurrentIdx = []; // chosen threshold per vector
+    state.vectorEnabled = []; // checkbox state per vector
+    for (let v = 0; v < state.vectors.length; v++) {
+      const vec = state.vectors[v];
+      const rs = [];
+      for (const t of COVERAGES) {
+        if (vec.frames.length >= 2) {
+          rs.push(buildResultForCoverage(t, vec.frames, vec.binFrames));
+        } else {
+          rs.push(null); // can't derive a pattern from <2 frames
+        }
+        await new Promise(r => setTimeout(r, 0));
+      }
+      state.vectorResults.push(rs);
+      state.vectorCurrentIdx.push(2); // default 70%
+      state.vectorEnabled.push(true);
+    }
+
+    dzSub.textContent =
+      `${parsed.format} · ${fmtBytes(file.size)} · ${state.totalFrameCount} frames parsed · ` +
+      `${state.frames.length} non-empty · ${state.vectors.length} vector${state.vectors.length === 1 ? "" : "s"}`;
+
+    renderSummary();
+    controls.classList.remove("hidden");
+    applyMode();
+    setStatus("done", "ready");
+  }
+
+  // ============================================================
+  // EVENTS
+  // ============================================================
+  dropzone.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", e => {
+    if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+  });
+
+  ["dragenter", "dragover"].forEach(ev => {
+    dropzone.addEventListener(ev, e => {
+      e.preventDefault(); e.stopPropagation();
+      dropzone.classList.add("is-over");
+    });
+  });
+  ["dragleave", "drop"].forEach(ev => {
+    dropzone.addEventListener(ev, e => {
+      e.preventDefault(); e.stopPropagation();
+      dropzone.classList.remove("is-over");
+    });
+  });
+  dropzone.addEventListener("drop", e => {
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  sensSlider.addEventListener("input", () => {
+    const idx = parseInt(sensSlider.value, 10);
+    state.currentIdx = idx;
+    if (state.results.length > 0) renderSingle();
+  });
+
+  stopsEl.addEventListener("click", e => {
+    const el = e.target.closest(".stop");
+    if (!el) return;
+    const idx = parseInt(el.dataset.i, 10);
+    sensSlider.value = String(idx);
+    state.currentIdx = idx;
+    if (state.results.length > 0) renderSingle();
+  });
+
+  // Mode toggle
+  $("mode-toggle").addEventListener("click", e => {
+    const btn = e.target.closest("button[data-mode]");
+    if (!btn) return;
+    const newMode = btn.dataset.mode;
+    if (newMode === state.mode) return;
+    state.mode = newMode;
+    document.querySelectorAll("#mode-toggle button").forEach(b => {
+      b.classList.toggle("active", b.dataset.mode === newMode);
+    });
+    if (state.frames.length > 0) applyMode();
+  });
+
+  // Delegated event handler for multi-vector sliders, stops, and toggles
+  document.addEventListener("input", e => {
+    const slider = e.target.closest("[data-vec-slider]");
+    if (!slider) return;
+    const v = parseInt(slider.dataset.vecSlider, 10);
+    const idx = parseInt(slider.value, 10);
+    state.vectorCurrentIdx[v] = idx;
+    renderVectorBlock(v);
+    renderCombined();
+  });
+  document.addEventListener("click", e => {
+    // Vector stop clicks
+    const stop = e.target.closest("[data-vec-stops] .stop");
+    if (stop) {
+      const v = parseInt(stop.dataset.vec, 10);
+      const idx = parseInt(stop.dataset.i, 10);
+      state.vectorCurrentIdx[v] = idx;
+      // sync the slider input
+      const slider = document.querySelector(`[data-vec-slider="${v}"]`);
+      if (slider) slider.value = String(idx);
+      renderVectorBlock(v);
+      renderCombined();
+      return;
+    }
+    // Vector toggle clicks
+    const tog = e.target.closest(".vector-toggle");
+    if (tog) {
+      const v = parseInt(tog.dataset.vec, 10);
+      state.vectorEnabled[v] = !state.vectorEnabled[v];
+      tog.classList.toggle("on", state.vectorEnabled[v]);
+      renderCombined();
+      return;
+    }
+  });
+
+  // copy buttons (delegated)
+  document.addEventListener("click", e => {
+    const btn = e.target.closest(".copy-btn");
+    if (!btn) return;
+    const id = btn.dataset.copy;
+    const body = $(id);
+    if (!body || body.classList.contains("empty")) return;
+    const clone = body.cloneNode(true);
+    const ctrl  = clone.querySelector(".ctrl");
+    if (ctrl) ctrl.remove();
+    const text = clone.textContent;
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.classList.add("flashed");
+      const orig = btn.textContent;
+      btn.textContent = "copied";
+      setTimeout(() => {
+        btn.classList.remove("flashed");
+        btn.textContent = orig;
+      }, 900);
+    }).catch(() => {
+      const orig = btn.textContent;
+      btn.textContent = "failed";
+      setTimeout(() => { btn.textContent = orig; }, 1200);
+    });
+  });
+})();
+</script>
+</body>
+</html>
